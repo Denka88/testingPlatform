@@ -1,0 +1,601 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ test.title }}{% endblock %}
+
+{% block topbar_title %}{{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="test-take-container">
+    <!-- Инфо панель -->
+    <div class="test-info-panel">
+        <div class="test-info-item">
+            <span class="test-info-label">Время</span>
+            <span class="test-info-value" id="timer">{{ test.time_limit }}:00</span>
+        </div>
+        <div class="test-info-item">
+            <span class="test-info-label">Вопрос</span>
+            <span class="test-info-value"><span id="currentQuestion">1</span> / {{ questions.count }}</span>
+        </div>
+        <div class="test-info-item">
+            <span class="test-info-label">Предмет</span>
+            <span class="test-info-value">{{ test.subject.name }}</span>
+        </div>
+    </div>
+    
+    <form id="testForm" class="test-form" data-result-id="{{ result.id }}">
+        {% csrf_token %}
+        
+        <div class="questions-wrapper">
+            {% for question in questions %}
+            <div class="question-card" data-question-id="{{ question.id }}">
+                <div class="question-header">
+                    <span class="question-badge">Вопрос {{ forloop.counter }}</span>
+                    <span class="question-type-badge">
+                        {% if question.question_type == 'single' %}
+                            Один ответ
+                        {% else %}
+                            Несколько ответов
+                        {% endif %}
+                    </span>
+                </div>
+                
+                {% if question.image %}
+                <div class="question-image">
+                    <img src="{{ question.image.url }}" alt="К вопросу">
+                </div>
+                {% endif %}
+                
+                {% if question.code_snippet %}
+                <div class="question-code">
+                    <pre><code>{{ question.code_snippet }}</code></pre>
+                </div>
+                {% endif %}
+                
+                <h3 class="question-text">{{ question.text }}</h3>
+                
+                <div class="answers-list" data-question-type="{{ question.question_type }}">
+                    {% for answer in question.answers.all %}
+                    <label class="answer-option">
+                        <input 
+                            type="{{ question.question_type == 'single' and 'radio' or 'checkbox' }}" 
+                            name="question_{{ question.id }}" 
+                            value="{{ answer.id }}"
+                            class="answer-input"
+                            data-question-id="{{ question.id }}"
+                        >
+                        <span class="answer-content">{{ answer.text }}</span>
+                        {% if answer.image %}
+                            <img src="{{ answer.image.url }}" alt="" class="answer-image">
+                        {% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="test-actions">
+            <button type="button" class="btn btn-secondary" id="prevBtn" disabled>
+                Назад
+            </button>
+            <button type="button" class="btn btn-primary" id="nextBtn">
+                Далее
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                Завершить тест
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Модальное окно подтверждения -->
+<div class="modal-overlay" id="submitModal" style="display: none;">
+    <div class="modal">
+        <h3 class="modal-title">Завершить тестирование?</h3>
+        <p class="modal-text">
+            Вы ответили на <span id="answeredCount">0</span> из {{ questions.count }} вопросов.
+            После завершения вы не сможете изменить ответы.
+        </p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" id="cancelSubmit">Продолжить</button>
+            <button class="btn btn-primary" id="confirmSubmit">Завершить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Результат -->
+<div class="result-overlay" id="resultOverlay" style="display: none;">
+    <div class="result-card">
+        <div class="result-icon" id="resultIcon">✓</div>
+        <h2 class="result-title">Тест завершен!</h2>
+        <div class="result-stats">
+            <div class="result-stat">
+                <span class="result-stat-value" id="correctCount">0</span>
+                <span class="result-stat-label">Правильных ответов</span>
+            </div>
+            <div class="result-stat">
+                <span class="result-stat-value" id="totalCount">{{ questions.count }}</span>
+                <span class="result-stat-label">Всего вопросов</span>
+            </div>
+            <div class="result-stat">
+                <span class="result-stat-value grade-badge grade-" id="resultGrade">-</span>
+                <span class="result-stat-label">Оценка</span>
+            </div>
+        </div>
+        <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg">
+            Вернуться на главную
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-take-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .test-info-panel {
+        position: sticky;
+        top: 0;
+        display: flex;
+        justify-content: space-around;
+        padding: 16px;
+        background-color: var(--color-primary);
+        color: white;
+        border-radius: var(--border-radius-lg);
+        margin-bottom: 24px;
+        z-index: 10;
+    }
+    
+    .test-info-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .test-info-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .test-info-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .test-form {
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+    
+    .questions-wrapper {
+        min-height: 400px;
+    }
+    
+    .question-card {
+        display: none;
+        padding: 24px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .question-card.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    
+    .question-badge {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        background-color: var(--color-primary-light);
+        padding: 6px 12px;
+        border-radius: 9999px;
+    }
+    
+    .question-type-badge {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .question-image,
+    .answer-image {
+        max-width: 100%;
+        border-radius: var(--border-radius);
+        margin: 16px 0;
+    }
+    
+    .question-code {
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+        padding: 16px;
+        margin: 16px 0;
+        overflow-x: auto;
+    }
+    
+    .question-code pre {
+        margin: 0;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    
+    .question-text {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 24px;
+    }
+    
+    .answers-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .answer-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px;
+        background-color: var(--bg-surface-secondary);
+        border: 2px solid transparent;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .answer-option:hover {
+        background-color: var(--color-primary-light);
+    }
+    
+    .answer-option.selected {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary-light);
+    }
+    
+    .answer-input {
+        margin-top: 4px;
+        accent-color: var(--color-primary);
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+    
+    .answer-content {
+        flex: 1;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    }
+    
+    .test-actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-top: 1px solid var(--border-color);
+        background-color: var(--bg-surface-secondary);
+    }
+    
+    /* Модальное окно */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .modal {
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius-lg);
+        padding: 32px;
+        max-width: 450px;
+        width: 90%;
+    }
+    
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 12px;
+    }
+    
+    .modal-text {
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+        line-height: 1.6;
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    
+    /* Результат */
+    .result-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .result-card {
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius-lg);
+        padding: 40px;
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+    }
+    
+    .result-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        background-color: var(--color-success);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .result-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 32px;
+    }
+    
+    .result-stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 32px;
+    }
+    
+    .result-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .result-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    
+    .result-stat-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const form = document.getElementById('testForm');
+    const questions = document.querySelectorAll('.question-card');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const timerEl = document.getElementById('timer');
+    const currentQuestionEl = document.getElementById('currentQuestion');
+    const submitModal = document.getElementById('submitModal');
+    const cancelSubmit = document.getElementById('cancelSubmit');
+    const confirmSubmit = document.getElementById('confirmSubmit');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const answeredCountEl = document.getElementById('answeredCount');
+    
+    let currentQuestionIndex = 0;
+    let timeRemaining = {{ test.time_limit }} * 60;
+    let timerInterval;
+    
+    // Показываем первый вопрос
+    showQuestion(0);
+    
+    // Таймер
+    function startTimer() {
+        timerInterval = setInterval(function() {
+            timeRemaining--;
+            
+            const mins = Math.floor(timeRemaining / 60);
+            const secs = timeRemaining % 60;
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                submitTest();
+            }
+        }, 1000);
+    }
+    
+    startTimer();
+    
+    // Навигация
+    function showQuestion(index) {
+        questions.forEach((q, i) => {
+            q.classList.toggle('active', i === index);
+        });
+        
+        currentQuestionIndex = index;
+        currentQuestionEl.textContent = index + 1;
+        
+        prevBtn.disabled = index === 0;
+        
+        if (index === questions.length - 1) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'inline-flex';
+        } else {
+            nextBtn.style.display = 'inline-flex';
+            submitBtn.style.display = 'none';
+        }
+        
+        // Сохраняем состояние выбора
+        saveAnswers();
+    }
+    
+    prevBtn.addEventListener('click', function() {
+        if (currentQuestionIndex > 0) {
+            showQuestion(currentQuestionIndex - 1);
+        }
+    });
+    
+    nextBtn.addEventListener('click', function() {
+        if (currentQuestionIndex < questions.length - 1) {
+            showQuestion(currentQuestionIndex + 1);
+        }
+    });
+    
+    // Подсветка выбранных ответов
+    document.querySelectorAll('.answer-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const questionType = this.closest('.answers-list').dataset.questionType;
+            const questionCard = this.closest('.question-card');
+            
+            if (questionType === 'single') {
+                questionCard.querySelectorAll('.answer-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                if (this.checked) {
+                    this.closest('.answer-option').classList.add('selected');
+                }
+            } else {
+                this.closest('.answer-option').classList.toggle('selected', this.checked);
+            }
+            
+            saveAnswers();
+        });
+        
+        // Инициализация подсветки
+        if (input.checked) {
+            input.closest('.answer-option').classList.add('selected');
+        }
+    });
+    
+    // Сохранение ответов
+    function saveAnswers() {
+        const answers = {};
+        document.querySelectorAll('.answer-input:checked').forEach(input => {
+            const questionId = input.dataset.questionId;
+            if (!answers[questionId]) {
+                answers[questionId] = [];
+            }
+            answers[questionId].push(input.value);
+        });
+        sessionStorage.setItem('testAnswers', JSON.stringify(answers));
+    }
+    
+    // Подсчет отвеченных вопросов
+    function countAnswered() {
+        const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
+        return Object.keys(answers).length;
+    }
+    
+    // Отправка теста
+    submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        answeredCountEl.textContent = countAnswered();
+        submitModal.style.display = 'flex';
+    });
+    
+    cancelSubmit.addEventListener('click', function() {
+        submitModal.style.display = 'none';
+    });
+    
+    confirmSubmit.addEventListener('click', function() {
+        submitModal.style.display = 'none';
+        submitTest();
+    });
+    
+    function submitTest() {
+        clearInterval(timerInterval);
+        
+        const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
+        const formData = new FormData();
+        formData.append('answers', JSON.stringify(answers));
+        
+        fetch('{% url "test_submit" result.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showResult(data);
+            } else {
+                alert('Ошибка при отправке: ' + data.error);
+            }
+        })
+        .catch(err => {
+            alert('Ошибка сети: ' + err);
+        });
+    }
+    
+    function showResult(data) {
+        document.getElementById('correctCount').textContent = data.correct_count;
+        document.getElementById('totalCount').textContent = data.total_questions;
+        const gradeEl = document.getElementById('resultGrade');
+        gradeEl.textContent = data.grade;
+        gradeEl.className = 'result-stat-value grade-badge grade-' + data.grade;
+        
+        const iconEl = document.getElementById('resultIcon');
+        if (data.grade >= 4) {
+            iconEl.textContent = '✓';
+            iconEl.style.backgroundColor = 'var(--color-success)';
+        } else if (data.grade >= 3) {
+            iconEl.textContent = '!';
+            iconEl.style.backgroundColor = 'var(--color-warning)';
+        } else {
+            iconEl.textContent = '✗';
+            iconEl.style.backgroundColor = 'var(--color-error)';
+        }
+        
+        resultOverlay.style.display = 'flex';
+    }
+    
+    // Предотвращение закрытия страницы
+    window.addEventListener('beforeunload', function(e) {
+        if (timeRemaining > 0) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+})();
+</script>
+{% endblock %}

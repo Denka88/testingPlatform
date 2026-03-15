@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои тесты{% endblock %}
+
+{% block topbar_title %}Мои тесты{% endblock %}
+
+{% block content %}
+<div class="tests-container">
+    <div class="tests-header">
+        <h1 class="page-title">Тесты</h1>
+        <a href="{% url 'teacher_test_create' %}" class="btn btn-primary">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            Создать тест
+        </a>
+    </div>
+    
+    <div class="tests-list">
+        {% for test in tests %}
+        <div class="test-card {% if not test.is_published %}test-card-draft{% endif %}">
+            <div class="test-card-header">
+                <div class="test-card-title">
+                    <h3 class="test-name">{{ test.title }}</h3>
+                    <span class="test-subject">{{ test.subject.name }}</span>
+                </div>
+                <div class="test-card-status">
+                    {% if test.is_published %}
+                        <span class="badge badge-success">Опубликован</span>
+                    {% else %}
+                        <span class="badge badge-draft">Черновик</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="test-card-body">
+                {% if test.description %}
+                    <p class="test-description">{{ test.description|truncatewords:20 }}</p>
+                {% endif %}
+                
+                <div class="test-card-meta">
+                    <div class="test-meta-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>{{ test.time_limit }} мин</span>
+                    </div>
+                    <div class="test-meta-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>{{ test.groups.count }} групп</span>
+                    </div>
+                    <div class="test-meta-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <span>{{ test.questions.count }} вопросов</span>
+                    </div>
+                </div>
+                
+                <div class="test-card-groups">
+                    {% for group in test.groups.all %}
+                        <span class="test-group-tag">{{ group.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="test-card-footer">
+                <div class="test-card-actions">
+                    <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary btn-sm">
+                        Редактировать
+                    </a>
+                    <a href="{% url 'teacher_test_duplicate' test.id %}" class="btn btn-secondary btn-sm" 
+                       onclick="return confirmAction('Создать копию этого теста?')">
+                        Дублировать
+                    </a>
+                    <a href="{% url 'teacher_test_delete' test.id %}" class="btn btn-danger btn-sm"
+                       onclick="return confirmAction('Вы уверены, что хотите удалить этот тест?')">
+                        Удалить
+                    </a>
+                </div>
+                <span class="test-date">{{ test.updated_at|date:"d.m.Y" }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <h3 class="empty-state-title">Тесты не найдены</h3>
+            <p class="empty-state-text">Создайте первый тест для начала работы</p>
+            <a href="{% url 'teacher_test_create' %}" class="btn btn-primary">
+                Создать тест
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tests-container {
+        max-width: 1000px;
+    }
+    
+    .tests-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .tests-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .test-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+    
+    .test-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .test-card-draft {
+        opacity: 0.8;
+    }
+    
+    .test-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    
+    .test-card-title {
+        flex: 1;
+    }
+    
+    .test-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+    
+    .test-subject {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+    
+    .badge-success {
+        background-color: var(--color-success);
+        color: white;
+    }
+    
+    .badge-draft {
+        background-color: var(--text-muted);
+        color: white;
+    }
+    
+    .test-card-body {
+        padding: 20px 24px;
+    }
+    
+    .test-description {
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+    }
+    
+    .test-card-meta {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    
+    .test-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .test-card-groups {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .test-group-tag {
+        padding: 4px 10px;
+        background-color: var(--color-primary-light);
+        color: var(--color-primary);
+        border-radius: 9999px;
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+    
+    .test-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background-color: var(--bg-surface-secondary);
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .test-card-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .test-date {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    @media (max-width: 600px) {
+        .tests-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        
+        .test-card-footer {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        
+        .test-card-actions {
+            flex-wrap: wrap;
+        }
+    }
+</style>
+{% endblock %}

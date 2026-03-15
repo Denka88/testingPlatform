@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать тест{% endblock %}
+
+{% block topbar_title %}Создать тест{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Основная информация</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" class="test-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label class="form-label" for="subject">Предмет *</label>
+                    <select class="form-select" id="subject" name="subject" required>
+                        <option value="">Выберите предмет</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="title">Название теста *</label>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        id="title" 
+                        name="title" 
+                        required
+                        placeholder="Например: Входное тестирование по Python"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="description">Описание</label>
+                    <textarea 
+                        class="form-textarea" 
+                        id="description" 
+                        name="description" 
+                        rows="4"
+                        placeholder="Краткое описание теста для студентов"
+                    ></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="time_limit">Время на прохождение (минут)</label>
+                        <input 
+                            type="number" 
+                            class="form-input" 
+                            id="time_limit" 
+                            name="time_limit" 
+                            value="60"
+                            min="1"
+                            max="180"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="groups">Группы</label>
+                        <select class="form-select" id="groups" name="groups" multiple size="5">
+                            {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="form-help">Зажмите Ctrl/Cmd для выбора нескольких групп</p>
+                    </div>
+                </div>
+                
+                <div class="form-check">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="is_published" 
+                        name="is_published"
+                    >
+                    <label class="form-check-label" for="is_published">
+                        Опубликовать тест (сделать доступным для студентов)
+                    </label>
+                </div>
+                
+                <div class="form-check mt-2">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="show_correct_answers" 
+                        name="show_correct_answers"
+                        checked
+                    >
+                    <label class="form-check-label" for="show_correct_answers">
+                        Показывать правильные ответы после прохождения
+                    </label>
+                </div>
+                
+                <div class="form-actions mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        Создать тест
+                    </button>
+                    <a href="{% url 'teacher_tests' %}" class="btn btn-secondary">
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 700px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    @media (max-width: 600px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

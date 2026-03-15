@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}Результат: {{ result.test.title }}{% endblock %}
+
+{% block topbar_title %}Результат тестирования{% endblock %}
+
+{% block content %}
+<div class="result-detail-container">
+    <div class="result-header">
+        <a href="{% if user.is_student %}{% url 'student_results' %}{% else %}{% url 'teacher_results' %}{% endif %}" 
+           class="btn btn-secondary btn-sm">
+            ← Назад
+        </a>
+    </div>
+    
+    <div class="result-card-main">
+        <div class="result-card-header">
+            <div class="result-main-info">
+                <h1 class="result-title">{{ result.test.title }}</h1>
+                <p class="result-subject">{{ result.test.subject.name }}</p>
+            </div>
+            <div class="result-grade-main grade-{{ result.grade }}">
+                {{ result.grade }}
+            </div>
+        </div>
+        
+        <div class="result-stats-grid">
+            <div class="result-stat-card">
+                <span class="result-stat-label">Студент</span>
+                <span class="result-stat-value">{{ result.student.last_name }} {{ result.student.first_name }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Дата</span>
+                <span class="result-stat-value">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Правильно</span>
+                <span class="result-stat-value">{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Процент</span>
+                <span class="result-stat-value">{{ result.correct_answers_count|floatformat:0|add:"0"|multiply:100|divide:result.total_questions }}%</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Ответы</h2>
+        </div>
+        <div class="card-body">
+            {% for student_answer in result.studentanswer_set.all %}
+            <div class="answer-review">
+                <div class="answer-review-header">
+                    <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
+                    <span class="answer-review-status {% if student_answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                        {% if student_answer.is_correct %}
+                            ✓ Правильно
+                        {% else %}
+                            ✗ Неправильно
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <p class="answer-review-question">{{ student_answer.question.text }}</p>
+                
+                <div class="answer-review-answers">
+                    <div class="review-answers-section">
+                        <span class="review-section-label">Ваш ответ:</span>
+                        <div class="review-answers-list">
+                            {% for answer in student_answer.answers.all %}
+                                <span class="review-answer-tag {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                                    {{ answer.text }}
+                                </span>
+                            {% empty %}
+                                <span class="review-answer-tag no-answer">Нет ответа</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    {% if result.test.show_correct_answers or user.is_teacher %}
+                    <div class="review-answers-section">
+                        <span class="review-section-label">Правильный ответ:</span>
+                        <div class="review-answers-list">
+                            {% for correct_answer in student_answer.question.answers.all %}
+                                {% if correct_answer.is_correct %}
+                                    <span class="review-answer-tag correct">
+                                        {{ correct_answer.text }}
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% if user.is_teacher %}
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Изменить оценку</h2>
+        </div>
+        <div class="card-body">
+            <form id="gradeForm" data-result-id="{{ result.id }}">
+                {% csrf_token %}
+                <div class="grade-selector">
+                    <input type="radio" name="grade" value="2" id="grade2" class="grade-input" {% if result.grade == 2 %}checked{% endif %}>
+                    <label for="grade2" class="grade-option grade-2">2</label>
+                    
+                    <input type="radio" name="grade" value="3" id="grade3" class="grade-input" {% if result.grade == 3 %}checked{% endif %}>
+                    <label for="grade3" class="grade-option grade-3">3</label>
+                    
+                    <input type="radio" name="grade" value="4" id="grade4" class="grade-input" {% if result.grade == 4 %}checked{% endif %}>
+                    <label for="grade4" class="grade-option grade-4">4</label>
+                    
+                    <input type="radio" name="grade" value="5" id="grade5" class="grade-input" {% if result.grade == 5 %}checked{% endif %}>
+                    <label for="grade5" class="grade-option grade-5">5</label>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Сохранить оценку</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-detail-container {
+        max-width: 900px;
+    }
+    
+    .result-header {
+        margin-bottom: 20px;
+    }
+    
+    .result-card-main {
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--border-color);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .result-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .result-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    
+    .result-subject {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+    }
+    
+    .result-grade-main {
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 2.5rem;
+    }
+    
+    .grade-5 { background-color: #22c55e; color: white; }
+    .grade-4 { background-color: #3b82f6; color: white; }
+    .grade-3 { background-color: #f59e0b; color: white; }
+    .grade-2 { background-color: #ef4444; color: white; }
+    
+    .result-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+    }
+    
+    .result-stat-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .result-stat-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .result-stat-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .answer-review {
+        padding: 20px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+        margin-bottom: 16px;
+    }
+    
+    .answer-review:last-child {
+        margin-bottom: 0;
+    }
+    
+    .answer-review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .answer-review-number {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .answer-review-status {
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 4px 12px;
+        border-radius: 9999px;
+    }
+    
+    .answer-review-status.correct {
+        background-color: var(--color-success-bg);
+        color: var(--color-success);
+    }
+    
+    .answer-review-status.incorrect {
+        background-color: var(--color-error-bg);
+        color: var(--color-error);
+    }
+    
+    .answer-review-question {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+    
+    .answer-review-answers {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .review-answers-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .review-section-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .review-answers-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .review-answer-tag {
+        padding: 6px 12px;
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius);
+        font-size: 0.875rem;
+        border: 1px solid var(--border-color);
+    }
+    
+    .review-answer-tag.correct {
+        background-color: var(--color-success-bg);
+        color: var(--color-success);
+        border-color: var(--color-success);
+    }
+    
+    .review-answer-tag.incorrect {
+        background-color: var(--color-error-bg);
+        color: var(--color-error);
+        border-color: var(--color-error);
+    }
+    
+    .review-answer-tag.no-answer {
+        background-color: var(--bg-surface-secondary);
+        color: var(--text-muted);
+    }
+    
+    .grade-selector {
+        display: flex;
+        gap: 12px;
+    }
+    
+    .grade-input {
+        display: none;
+    }
+    
+    .grade-option {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 1.25rem;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .grade-option:hover {
+        transform: scale(1.1);
+    }
+    
+    .grade-input:checked + .grade-option {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px var(--color-primary-light);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if user.is_teacher %}
+(function() {
+    const gradeForm = document.getElementById('gradeForm');
+    
+    gradeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        const grade = this.querySelector('input[name="grade"]:checked');
+        
+        if (!grade) {
+            alert('Выберите оценку');
+            return;
+        }
+        
+        formData.append('grade', grade.value);
+        
+        fetch('{% url "test_result_update_grade" result.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка: ' + data.error);
+            }
+        })
+        .catch(err => {
+            alert('Ошибка сети: ' + err);
+        });
+    });
+})();
+{% endif %}
+</script>
+{% endblock %}

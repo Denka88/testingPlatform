@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавить вопрос{% endblock %}
+
+{% block topbar_title %}Добавить вопрос{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Новый вопрос</h2>
+            <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary btn-sm">Назад</a>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="question-form" id="questionForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label class="form-label" for="text">Текст вопроса *</label>
+                    <textarea 
+                        class="form-textarea" 
+                        id="text" 
+                        name="text" 
+                        rows="4"
+                        required
+                        placeholder="Введите текст вопроса"
+                    ></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="question_type">Тип вопроса *</label>
+                        <select class="form-select" id="question_type" name="question_type" required>
+                            <option value="single">Один правильный ответ</option>
+                            <option value="multiple">Несколько правильных ответов</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="order">Порядок отображения</label>
+                        <input 
+                            type="number" 
+                            class="form-input" 
+                            id="order" 
+                            name="order" 
+                            value="{{ test.questions.count|add:1 }}"
+                            min="0"
+                        >
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="code_snippet">Фрагмент кода (опционально)</label>
+                    <textarea 
+                        class="form-textarea" 
+                        id="code_snippet" 
+                        name="code_snippet" 
+                        rows="6"
+                        placeholder="// Вставьте код вопроса здесь"
+                    ></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Изображение к вопросу (опционально)</label>
+                    <input type="file" class="form-input" id="image" name="image" accept="image/*">
+                </div>
+                
+                <!-- Ответы -->
+                <div class="answers-section">
+                    <h3 class="answers-title">Варианты ответов</h3>
+                    <div id="answersContainer">
+                        <div class="answer-row">
+                            <div class="answer-check">
+                                <input type="radio" name="answer_correct" value="0" class="form-check-input" required>
+                            </div>
+                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                            <button type="button" class="btn btn-secondary btn-sm remove-answer" style="display:none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="answer-row">
+                            <div class="answer-check">
+                                <input type="radio" name="answer_correct" value="1" class="form-check-input">
+                            </div>
+                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="answer-row">
+                            <div class="answer-check">
+                                <input type="radio" name="answer_correct" value="2" class="form-check-input">
+                            </div>
+                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="answer-row">
+                            <div class="answer-check">
+                                <input type="radio" name="answer_correct" value="3" class="form-check-input">
+                            </div>
+                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="addAnswerBtn" style="display:none;">
+                        Добавить вариант
+                    </button>
+                </div>
+                
+                <div class="form-actions mt-3">
+                    <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
+                    <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const questionType = document.getElementById('question_type');
+    const answersContainer = document.getElementById('answersContainer');
+    const addAnswerBtn = document.getElementById('addAnswerBtn');
+    const removeButtons = answersContainer.querySelectorAll('.remove-answer');
+
+    // Показываем кнопку добавления ответа
+    addAnswerBtn.style.display = 'inline-flex';
+
+    // Показываем кнопки удаления на всех ответах кроме первого
+    removeButtons.forEach((btn, index) => {
+        if (index > 0) {
+            btn.style.display = 'inline-flex';
+        }
+    });
+
+    // Переключение типа вопроса
+    questionType.addEventListener('change', function() {
+        const isMultiple = this.value === 'multiple';
+        // Ищем все input в ответах (и radio, и checkbox)
+        const inputs = answersContainer.querySelectorAll('.answer-check input');
+
+        inputs.forEach((input, index) => {
+            input.type = isMultiple ? 'checkbox' : 'radio';
+            input.name = isMultiple ? 'answer_correct[]' : 'answer_correct';
+            // Для radio сбрасываем checked, чтобы остался только один выбранный
+            if (!isMultiple && index === 0) {
+                input.checked = true;
+            }
+        });
+    });
+
+    // Добавление ответа
+    addAnswerBtn.addEventListener('click', function() {
+        const answerRows = answersContainer.querySelectorAll('.answer-row');
+        const newIndex = answerRows.length;
+
+        const isMultiple = questionType.value === 'multiple';
+        const inputType = isMultiple ? 'checkbox' : 'radio';
+        const inputName = isMultiple ? 'answer_correct[]' : 'answer_correct';
+
+        const newRow = document.createElement('div');
+        newRow.className = 'answer-row';
+        newRow.innerHTML = `
+            <div class="answer-check">
+                <input type="${inputType}" name="${inputName}" value="${newIndex}" class="form-check-input">
+            </div>
+            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+            <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+        
+        answersContainer.appendChild(newRow);
+        
+        // Добавляем обработчик удаления
+        newRow.querySelector('.remove-answer').addEventListener('click', function() {
+            if (answersContainer.querySelectorAll('.answer-row').length > 2) {
+                newRow.remove();
+            } else {
+                alert('Должно быть минимум 2 варианта ответа');
+            }
+        });
+    });
+    
+    // Удаление ответа
+    removeButtons.forEach((btn, index) => {
+        if (index > 0) {
+            btn.addEventListener('click', function() {
+                if (answersContainer.querySelectorAll('.answer-row').length > 2) {
+                    btn.closest('.answer-row').remove();
+                } else {
+                    alert('Должно быть минимум 2 варианта ответа');
+                }
+            });
+        }
+    });
+})();
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 700px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .answers-section {
+        margin-top: 24px;
+        padding: 20px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .answers-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+    
+    .answer-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .answer-check {
+        flex-shrink: 0;
+        width: 24px;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .answer-row .form-input {
+        flex: 1;
+    }
+    
+    @media (max-width: 600px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .answer-row {
+            flex-wrap: wrap;
+        }
+        
+        .answer-row .form-input {
+            order: 3;
+            width: 100%;
+            margin-top: 8px;
+        }
+    }
+</style>
+{% endblock %}

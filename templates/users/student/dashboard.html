@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель студента{% endblock %}
+
+{% block topbar_title %}Панель студента{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    {% if not profile or not profile.group %}
+    <div class="message message-warning">
+        <span>Вы не прикреплены к группе. Обратитесь к администратору для назначения группы.</span>
+        <button class="message-close" onclick="this.parentElement.remove()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    {% endif %}
+    
+    <!-- Доступные тесты -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h2 class="card-title">Доступные тесты</h2>
+            <a href="{% url 'student_subjects' %}" class="btn btn-secondary btn-sm">Все предметы</a>
+        </div>
+        <div class="card-body">
+            {% if available_tests %}
+            <div class="tests-grid">
+                {% for test in available_tests %}
+                <div class="test-card-small">
+                    <div class="test-card-small-header">
+                        <span class="test-subject-name">{{ test.subject.name }}</span>
+                    </div>
+                    <h3 class="test-card-small-title">{{ test.title }}</h3>
+                    {% if test.description %}
+                        <p class="test-card-small-desc">{{ test.description|truncatewords:10 }}</p>
+                    {% endif %}
+                    <div class="test-card-small-meta">
+                        <span class="test-meta">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            {{ test.time_limit }} мин
+                        </span>
+                        <span class="test-meta">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            {{ test.questions.count }} вопросов
+                        </span>
+                    </div>
+                    <a href="{% url 'test_take' test.id %}" class="btn btn-primary btn-sm" style="width: 100%; margin-top: 12px;">
+                        Начать тестирование
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <h3 class="empty-state-title">Нет доступных тестов</h3>
+                <p class="empty-state-text">В данный момент нет тестов для прохождения</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Последние результаты -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Последние результаты</h2>
+            <a href="{% url 'student_results' %}" class="btn btn-secondary btn-sm">Все результаты</a>
+        </div>
+        <div class="card-body">
+            {% if recent_results %}
+            <div class="results-list-small">
+                {% for result in recent_results %}
+                <div class="result-item-small">
+                    <div class="result-info-small">
+                        <span class="result-test-name">{{ result.test.title }}</span>
+                        <span class="result-date">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                    <div class="result-grade-small grade-{{ result.grade }}">
+                        {{ result.grade }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p class="empty-state-text">Вы ещё не проходили тесты</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+    }
+    
+    .tests-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    
+    .test-card-small {
+        padding: 20px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius-lg);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .test-card-small-header {
+        margin-bottom: 12px;
+    }
+    
+    .test-subject-name {
+        font-size: 0.8125rem;
+        color: var(--color-primary);
+        font-weight: 500;
+    }
+    
+    .test-card-small-title {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    
+    .test-card-small-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+        flex: 1;
+    }
+    
+    .test-card-small-meta {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .test-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .results-list-small {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .result-item-small {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 18px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .result-info-small {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .result-test-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .result-date {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .result-grade-small {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 1.125rem;
+    }
+    
+    .grade-5 {
+        background-color: #22c55e;
+        color: white;
+    }
+    
+    .grade-4 {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .grade-3 {
+        background-color: #f59e0b;
+        color: white;
+    }
+    
+    .grade-2 {
+        background-color: #ef4444;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .tests-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ test.title }}{% endblock %}
+
+{% block topbar_title %}{{ test.title }}{% endblock %}
+
+{% block content %}
+<div class="test-edit-container">
+    <!-- Информация о тесте -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h2 class="card-title">Информация о тесте</h2>
+            <a href="{% url 'teacher_tests' %}" class="btn btn-secondary btn-sm">Назад к тестам</a>
+        </div>
+        <div class="card-body">
+            <form method="post" class="test-info-form">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label class="form-label" for="title">Название</label>
+                    <input 
+                        type="text" 
+                        class="form-input" 
+                        id="title" 
+                        name="title" 
+                        value="{{ test.title }}"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="description">Описание</label>
+                    <textarea 
+                        class="form-textarea" 
+                        id="description" 
+                        name="description" 
+                        rows="3"
+                    >{{ test.description }}</textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="time_limit">Время (мин)</label>
+                        <input 
+                            type="number" 
+                            class="form-input" 
+                            id="time_limit" 
+                            name="time_limit" 
+                            value="{{ test.time_limit }}"
+                            min="1"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="groups">Группы</label>
+                        <select class="form-select" id="groups" name="groups" multiple size="4">
+                            {% for group in test.groups.all %}
+                                <option value="{{ group.id }}" selected>{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-check">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="is_published" 
+                        name="is_published"
+                        {% if test.is_published %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="is_published">
+                        Опубликован
+                    </label>
+                </div>
+                
+                <div class="form-check mt-2">
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="show_correct_answers" 
+                        name="show_correct_answers"
+                        {% if test.show_correct_answers %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="show_correct_answers">
+                        Показывать правильные ответы
+                    </label>
+                </div>
+                
+                <div class="form-actions mt-3">
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Вопросы -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Вопросы ({{ test.questions.count }})</h2>
+            <a href="{% url 'teacher_question_create' test.id %}" class="btn btn-primary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                </svg>
+                Добавить вопрос
+            </a>
+        </div>
+        <div class="card-body">
+            {% if test.questions.all %}
+            <div class="questions-list">
+                {% for question in test.questions.all %}
+                <div class="question-item">
+                    <div class="question-header">
+                        <div class="question-number">Вопрос {{ question.order|default:forloop.counter }}</div>
+                        <div class="question-type">
+                            {% if question.question_type == 'single' %}
+                                <span class="badge">Один ответ</span>
+                            {% else %}
+                                <span class="badge">Несколько ответов</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="question-text">{{ question.text }}</p>
+                    <div class="question-answers">
+                        {% for answer in question.answers.all %}
+                            <div class="answer-item {% if answer.is_correct %}answer-correct{% endif %}">
+                                <span class="answer-marker">{% if answer.is_correct %}✓{% else %}✗{% endif %}</span>
+                                <span class="answer-text">{{ answer.text }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="question-actions">
+                        <a href="{% url 'teacher_question_delete' question.id %}" 
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirmAction('Удалить этот вопрос?')">
+                            Удалить
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">❓</div>
+                <h3 class="empty-state-title">Нет вопросов</h3>
+                <p class="empty-state-text">Добавьте первый вопрос к этому тесту</p>
+                <a href="{% url 'teacher_question_create' test.id %}" class="btn btn-primary">
+                    Добавить вопрос
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-edit-container {
+        max-width: 900px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .form-actions {
+        padding-top: 20px;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .questions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .question-item {
+        padding: 20px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .question-number {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .question-text {
+        font-size: 1rem;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+    
+    .question-answers {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    
+    .answer-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius);
+    }
+    
+    .answer-correct {
+        background-color: var(--color-success-bg);
+        border: 1px solid var(--color-success);
+    }
+    
+    .answer-marker {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0.875rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    
+    .answer-correct .answer-marker {
+        background-color: var(--color-success);
+        color: white;
+    }
+    
+    .question-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    @media (max-width: 600px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

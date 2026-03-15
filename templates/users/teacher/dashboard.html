@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель преподавателя{% endblock %}
+
+{% block topbar_title %}Панель преподавателя{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Статистика -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Предметов</span>
+            <span class="stat-value">{{ subjects|length }}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Групп</span>
+            <span class="stat-value">{{ groups|length }}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Тестов</span>
+            <span class="stat-value">{{ tests.count }}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Результатов</span>
+            <span class="stat-value">{{ recent_results.count }}</span>
+        </div>
+    </div>
+    
+    <!-- Быстрые действия -->
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Быстрые действия</h2>
+            </div>
+            <div class="card-body">
+                <div class="quick-actions">
+                    <a href="{% url 'teacher_test_create' %}" class="quick-action-item primary">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        <span>Создать тест</span>
+                    </a>
+                    <a href="{% url 'teacher_tests' %}" class="quick-action-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>Все тесты</span>
+                    </a>
+                    <a href="{% url 'teacher_results' %}" class="quick-action-item">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        <span>Результаты</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Последние результаты -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Последние результаты</h2>
+                <a href="{% url 'teacher_results' %}" class="btn btn-secondary btn-sm">Все</a>
+            </div>
+            <div class="card-body">
+                {% if recent_results %}
+                <div class="results-list">
+                    {% for result in recent_results %}
+                    <div class="result-item">
+                        <div class="result-student">
+                            <span class="result-name">{{ result.student.last_name }} {{ result.student.first_name }}</span>
+                            <span class="result-test">{{ result.test.title }}</span>
+                        </div>
+                        <div class="result-grade grade-{{ result.grade }}">
+                            {{ result.grade }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p class="empty-state-text">Пока нет результатов</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 24px;
+    }
+    
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .quick-action-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+    }
+    
+    .quick-action-item:hover {
+        transform: translateX(4px);
+    }
+    
+    .quick-action-item.primary {
+        background-color: var(--color-primary);
+        color: var(--text-inverse);
+    }
+    
+    .quick-action-item.primary:hover {
+        background-color: var(--color-primary-hover);
+    }
+    
+    .results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .result-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+    
+    .result-student {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .result-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .result-test {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    .result-grade {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 1.125rem;
+    }
+    
+    .grade-5 {
+        background-color: #22c55e;
+        color: white;
+    }
+    
+    .grade-4 {
+        background-color: #3b82f6;
+        color: white;
+    }
+    
+    .grade-3 {
+        background-color: #f59e0b;
+        color: white;
+    }
+    
+    .grade-2 {
+        background-color: #ef4444;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
