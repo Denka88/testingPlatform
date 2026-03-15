@@ -202,19 +202,31 @@ def test_take(request, test_id):
     if not request.user.is_student:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
+
     test = get_object_or_404(Test, id=test_id)
     profile = getattr(request.user, 'profile', None)
-    
+
     # Проверка доступа
     if not test.is_published:
         messages.error(request, 'Тест еще не опубликован')
         return redirect('student_dashboard')
-    
+
     if not profile or not profile.group or not test.groups.filter(id=profile.group.id).exists():
         messages.error(request, 'У вас нет доступа к этому тесту')
         return redirect('student_dashboard')
-    
+
+    # Проверка, есть ли завершённая попытка (нельзя пройти повторно)
+    completed_result = Result.objects.filter(
+        student=request.user,
+        test=test,
+        is_reset=False,
+        completed_at__isnull=False
+    ).first()
+
+    if completed_result:
+        messages.info(request, 'Вы уже прошли этот тест. Повторное прохождение недоступно.')
+        return redirect('student_subjects')
+
     # Проверка, есть ли активная попытка
     existing_result = Result.objects.filter(
         student=request.user,
@@ -222,7 +234,7 @@ def test_take(request, test_id):
         is_reset=False,
         completed_at__isnull=True
     ).first()
-    
+
     if existing_result:
         # Продолжение существующей попытки
         result = existing_result
@@ -233,9 +245,9 @@ def test_take(request, test_id):
             test=test,
             total_questions=test.questions.count()
         )
-    
+
     questions = test.questions.prefetch_related('answers').all()
-    
+
     context = {
         'test': test,
         'result': result,
@@ -258,32 +270,35 @@ def test_submit(request, result_id):
     
     # Получаем ответы из POST
     answers_data = json.loads(request.POST.get('answers', '{}'))
-    
+
     correct_count = 0
-    
+
     for question_id, selected_answer_ids in answers_data.items():
         question = get_object_or_404(Question, id=question_id)
-        
+
         student_answer = StudentAnswer.objects.create(
             result=result,
             question=question
         )
-        
+
         # Получаем правильные ответы
         correct_answer_ids = list(question.answers.filter(is_correct=True).values_list('id', flat=True))
-        
+
         # Проверяем правильность
         selected_ids = [int(x) for x in selected_answer_ids]
-        
+
         if question.question_type == 'single':
             is_correct = selected_ids == correct_answer_ids
         else:
             is_correct = set(selected_ids) == set(correct_answer_ids)
-        
+
         student_answer.is_correct = is_correct
         student_answer.save()
-        student_answer.answers.set(selected_ids)
         
+        # Сохраняем выбранные ответы (после сохранения student_answer)
+        if selected_ids:
+            student_answer.answers.set(selected_ids)
+
         if is_correct:
             correct_count += 1
     
@@ -321,18 +336,22 @@ def test_submit(request, result_id):
 @login_required
 def test_result_detail(request, result_id):
     """Просмотр результатов теста"""
-    result = get_object_or_404(Result, id=result_id)
-    
+    # Получаем результат с prefetch для оптимизации
+    result = Result.objects.prefetch_related(
+        'student_answers__question__answers',
+        'student_answers__answers'
+    ).get(id=result_id)
+
     # Проверка прав
     if request.user.is_student and result.student != request.user:
         messages.error(request, 'У вас нет доступа к этому результату')
         return redirect('dashboard')
-    
+
     if request.user.is_teacher:
         if not Test.objects.filter(id=result.test.id, created_by=request.user).exists():
             messages.error(request, 'У вас нет доступа к этому результату')
             return redirect('dashboard')
-    
+
     context = {'result': result}
     return render(request, 'tests/result_detail.html', context)
 

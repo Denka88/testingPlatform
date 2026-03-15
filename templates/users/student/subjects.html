@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load user_tags %}
 
 {% block title %}Предметы{% endblock %}
 
@@ -7,7 +8,7 @@
 {% block content %}
 <div class="subjects-container">
     {% for subject_data in subjects %}
-    {% with subject=subject_data.subject tests=subject_data.tests %}
+    {% with subject=subject_data.subject tests=subject_data.tests completed_tests_dict=subject_data.completed_tests_dict %}
     <div class="subject-card mb-3">
         <div class="subject-card-header">
             <div class="subject-card-icon">📖</div>
@@ -21,7 +22,7 @@
         
         <div class="subject-card-body">
             {% if tests %}
-                <h3 class="tests-subtitle">Доступные тесты:</h3>
+                <h3 class="tests-subtitle">Тесты:</h3>
                 <div class="tests-list-compact">
                     {% for test in tests %}
                     <div class="test-item-compact">
@@ -44,9 +45,20 @@
                                 </span>
                             </div>
                         </div>
-                        <a href="{% url 'test_take' test.id %}" class="btn btn-primary btn-sm">
-                            Начать
-                        </a>
+                        {% if test.id in completed_tests_dict %}
+                            <a href="{% url 'test_result_detail' completed_tests_dict|get_item:test.id %}" class="btn btn-secondary btn-sm">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Результат
+                            </a>
+                        {% else %}
+                            <a href="{% url 'test_take' test.id %}" class="btn btn-primary btn-sm">
+                                Начать
+                            </a>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

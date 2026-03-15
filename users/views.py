@@ -2,12 +2,18 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from .models import Profile, UserRole
-from .mixins import AdminRequiredMixin, TeacherRequiredMixin, StudentRequiredMixin
+from .mixins import TeacherRequiredMixin, StudentRequiredMixin
 
 User = get_user_model()
+
+
+def index_view(request):
+    """Главная страница - перенаправление по ролям"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return redirect('login')
 
 
 def login_view(request):
@@ -41,7 +47,7 @@ def logout_view(request):
 def dashboard_view(request):
     """Перенаправление на дашборд по роли"""
     if request.user.is_admin:
-        return redirect('admin_dashboard')
+        return redirect('admin:index')
     elif request.user.is_teacher:
         return redirect('teacher_dashboard')
     elif request.user.is_student:
@@ -50,91 +56,7 @@ def dashboard_view(request):
 
 
 # ==================== Admin Views ====================
-
-@login_required
-def admin_dashboard(request):
-    """Панель администратора"""
-    from groups.models import Group, Subject
-    from tests.models import Test
-    from results.models import Result
-    
-    if not request.user.is_admin:
-        messages.error(request, 'У вас нет доступа к этой странице')
-        return redirect('dashboard')
-    
-    context = {
-        'users_count': User.objects.count(),
-        'students_count': User.objects.filter(role='student').count(),
-        'teachers_count': User.objects.filter(role='teacher').count(),
-        'groups_count': Group.objects.count(),
-        'subjects_count': Subject.objects.count(),
-        'tests_count': Test.objects.count(),
-        'results_count': Result.objects.count(),
-    }
-    return render(request, 'users/admin/dashboard.html', context)
-
-
-@login_required
-def admin_users(request):
-    """Управление пользователями"""
-    from users.models import UserRole
-    
-    if not request.user.is_admin:
-        messages.error(request, 'У вас нет доступа к этой странице')
-        return redirect('dashboard')
-    
-    users = User.objects.select_related('profile').all()
-    
-    role_filter = request.GET.get('role')
-    if role_filter:
-        users = users.filter(role=role_filter)
-    
-    search = request.GET.get('search')
-    if search:
-        users = users.filter(
-            Q(username__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(last_name__icontains=search) |
-            Q(email__icontains=search)
-        )
-    
-    context = {
-        'users': users,
-        'roles': UserRole.choices,
-    }
-    return render(request, 'users/admin/users.html', context)
-
-
-@login_required
-def admin_groups(request):
-    """Управление группами"""
-    from groups.models import Group
-    
-    if not request.user.is_admin:
-        messages.error(request, 'У вас нет доступа к этой странице')
-        return redirect('dashboard')
-    
-    groups = Group.objects.annotate(
-        students_count=Count('students', distinct=True),
-        subjects_count=Count('subjects', distinct=True)
-    ).order_by('admission_year', 'name')
-    
-    context = {'groups': groups}
-    return render(request, 'users/admin/groups.html', context)
-
-
-@login_required
-def admin_subjects(request):
-    """Управление предметами"""
-    from groups.models import Subject
-    
-    if not request.user.is_admin:
-        messages.error(request, 'У вас нет доступа к этой странице')
-        return redirect('dashboard')
-    
-    subjects = Subject.objects.prefetch_related('teachers', 'groups').all()
-    context = {'subjects': subjects}
-    return render(request, 'users/admin/subjects.html', context)
+# Администрирование через стандартную Django admin: /admin/
 
 
 # ==================== Teacher Views ====================
@@ -281,13 +203,20 @@ def student_dashboard(request):
     
     # Предметы группы студента
     subjects = Subject.objects.filter(groups=profile.group)
-    
-    # Доступные тесты
+
+    # Получаем ID пройденных тестов
+    completed_tests = Result.objects.filter(
+        student=user,
+        is_reset=False,
+        completed_at__isnull=False
+    ).values_list('test_id', flat=True)
+
+    # Доступные тесты (исключая пройденные)
     available_tests = Test.objects.filter(
         groups=profile.group,
         is_published=True
-    ).select_related('subject')
-    
+    ).exclude(id__in=completed_tests).select_related('subject')
+
     # Результаты студента
     student_results = Result.objects.filter(
         student=user,
@@ -308,6 +237,7 @@ def student_subjects(request):
     """Предметы студента с тестами"""
     from tests.models import Test
     from groups.models import Subject
+    from results.models import Result
 
     if not request.user.is_student:
         messages.error(request, 'У вас нет доступа к этой странице')
@@ -327,6 +257,16 @@ def student_subjects(request):
         'tests__groups'
     )
 
+    # Получаем все пройденные тесты студентом с результатами
+    completed_results = Result.objects.filter(
+        student=user,
+        is_reset=False,
+        completed_at__isnull=False
+    ).select_related('test')
+
+    # Создаём словарь: test_id -> result_id
+    completed_tests_dict = {r.test.id: r.id for r in completed_results}
+
     # Фильтруем тесты для каждого предмета
     subjects_list = []
     for subject in subjects:
@@ -337,7 +277,8 @@ def student_subjects(request):
         )
         subjects_list.append({
             'subject': subject,
-            'tests': subject_tests
+            'tests': subject_tests,
+            'completed_tests_dict': completed_tests_dict
         })
 
     context = {'subjects': subjects_list}

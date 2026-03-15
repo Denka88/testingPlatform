@@ -27,6 +27,11 @@ class User(AbstractUser):
         blank=True,
         verbose_name='Дата рождения'
     )
+    patronymic = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name='Отчество'
+    )
 
     class Meta:
         verbose_name = 'Пользователь'

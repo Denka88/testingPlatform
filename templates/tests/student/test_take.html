@@ -52,17 +52,27 @@
                 {% endif %}
                 
                 <h3 class="question-text">{{ question.text }}</h3>
-                
+
                 <div class="answers-list" data-question-type="{{ question.question_type }}">
                     {% for answer in question.answers.all %}
                     <label class="answer-option">
-                        <input 
-                            type="{{ question.question_type == 'single' and 'radio' or 'checkbox' }}" 
-                            name="question_{{ question.id }}" 
-                            value="{{ answer.id }}"
-                            class="answer-input"
-                            data-question-id="{{ question.id }}"
-                        >
+                        {% if question.question_type == 'single' %}
+                            <input
+                                type="radio"
+                                name="question_{{ question.id }}"
+                                value="{{ answer.id }}"
+                                class="answer-input"
+                                data-question-id="{{ question.id }}"
+                            >
+                        {% else %}
+                            <input
+                                type="checkbox"
+                                name="question_{{ question.id }}"
+                                value="{{ answer.id }}"
+                                class="answer-input"
+                                data-question-id="{{ question.id }}"
+                            >
+                        {% endif %}
                         <span class="answer-content">{{ answer.text }}</span>
                         {% if answer.image %}
                             <img src="{{ answer.image.url }}" alt="" class="answer-image">
@@ -585,17 +595,21 @@
             iconEl.textContent = '✗';
             iconEl.style.backgroundColor = 'var(--color-error)';
         }
-        
+
         resultOverlay.style.display = 'flex';
+        
+        // Отключаем предупреждение о закрытии страницы после завершения теста
+        window.removeEventListener('beforeunload', preventClose);
     }
-    
-    // Предотвращение закрытия страницы
-    window.addEventListener('beforeunload', function(e) {
+
+    // Предотвращение закрытия страницы во время теста
+    function preventClose(e) {
         if (timeRemaining > 0) {
             e.preventDefault();
             e.returnValue = '';
         }
-    });
+    }
+    window.addEventListener('beforeunload', preventClose);
 })();
 </script>
 {% endblock %}

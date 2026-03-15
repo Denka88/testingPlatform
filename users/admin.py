@@ -5,22 +5,22 @@ from .models import User, Profile, UserRole
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('username', 'last_name', 'first_name', 'email', 'role', 'is_active', 'date_joined')
+    list_display = ('username', 'last_name', 'first_name', 'patronymic', 'email', 'role', 'is_active', 'date_joined')
     list_filter = ('role', 'is_active', 'is_staff', 'date_joined')
     ordering = ('-date_joined',)
-    
+
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Личная информация', {'fields': ('first_name', 'last_name', 'email', 'phone', 'birth_date')}),
+        ('Личная информация', {'fields': ('first_name', 'last_name', 'patronymic', 'email', 'phone', 'birth_date')}),
         ('Роль', {'fields': ('role',)}),
         ('Права доступа', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Важные даты', {'fields': ('last_login', 'date_joined')}),
     )
-    
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'password1', 'password2', 'email', 'first_name', 'last_name', 'role'),
+            'fields': ('username', 'password1', 'password2', 'email', 'first_name', 'last_name', 'patronymic', 'role'),
         }),
     )
 

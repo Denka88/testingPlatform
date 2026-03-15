@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'auth_base.html' %}
 
 {% block title %}Вход в систему{% endblock %}
 
@@ -10,35 +10,35 @@
             <h1 class="auth-title">Платформа тестирования</h1>
             <p class="auth-subtitle">Войдите в свой аккаунт</p>
         </div>
-        
+
         <form method="post" class="auth-form">
             {% csrf_token %}
-            
+
             <div class="form-group">
                 <label class="form-label" for="username">Имя пользователя</label>
-                <input 
-                    type="text" 
-                    class="form-input" 
-                    id="username" 
-                    name="username" 
+                <input
+                    type="text"
+                    class="form-input"
+                    id="username"
+                    name="username"
                     required
                     autofocus
                     placeholder="Введите имя пользователя"
                 >
             </div>
-            
+
             <div class="form-group">
                 <label class="form-label" for="password">Пароль</label>
-                <input 
-                    type="password" 
-                    class="form-input" 
-                    id="password" 
-                    name="password" 
+                <input
+                    type="password"
+                    class="form-input"
+                    id="password"
+                    name="password"
                     required
                     placeholder="Введите пароль"
                 >
             </div>
-            
+
             <button type="submit" class="btn btn-primary btn-lg auth-submit">
                 Войти
             </button>
@@ -49,51 +49,106 @@
 
 {% block extra_css %}
 <style>
-    .auth-container {
+    .auth-page {
+        background-color: var(--bg-body);
+    }
+    
+    .messages-container {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        max-width: 400px;
+        z-index: 1001;
+    }
+    
+    .auth-wrapper {
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: calc(100vh - var(--topbar-height));
         padding: 20px;
     }
     
-    .auth-card {
+    .theme-toggle-floating {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 1000;
+        color: var(--text-primary);
+    }
+    
+    .theme-toggle-floating:hover {
+        background-color: var(--bg-surface-secondary);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+    
+    .theme-toggle-floating .sun-icon {
+        display: block;
+    }
+    
+    .theme-toggle-floating .moon-icon {
+        display: none;
+    }
+    
+    [data-theme="dark"] .theme-toggle-floating .sun-icon {
+        display: none;
+    }
+    
+    [data-theme="dark"] .theme-toggle-floating .moon-icon {
+        display: block;
+    }
+    
+    .auth-container {
         width: 100%;
         max-width: 400px;
+    }
+
+    .auth-card {
         background-color: var(--bg-surface);
         border-radius: var(--border-radius-lg);
         border: 1px solid var(--border-color);
         padding: 40px;
     }
-    
+
     .auth-header {
         text-align: center;
         margin-bottom: 32px;
     }
-    
+
     .auth-logo {
         font-size: 3rem;
         margin-bottom: 16px;
     }
-    
+
     .auth-title {
         font-size: 1.5rem;
         font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 8px;
     }
-    
+
     .auth-subtitle {
         color: var(--text-secondary);
         font-size: 0.875rem;
     }
-    
+
     .auth-form {
         display: flex;
         flex-direction: column;
         gap: 20px;
     }
-    
+
     .auth-submit {
         margin-top: 8px;
     }

@@ -271,7 +271,7 @@ a:hover {
     background-color: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: var(--border-radius);
-    color: var(--text-inverse);
+    color: #ffffff;
     cursor: pointer;
     transition: all 0.2s ease;
     width: 100%;
@@ -284,10 +284,12 @@ a:hover {
 
 .theme-toggle-btn .sun-icon {
     display: none;
+    color: #ffffff;
 }
 
 .theme-toggle-btn .moon-icon {
     display: block;
+    color: #ffffff;
 }
 
 [data-theme="dark"] .theme-toggle-btn .sun-icon {
@@ -301,6 +303,7 @@ a:hover {
 .theme-label {
     font-size: 0.875rem;
     font-weight: 500;
+    color: #ffffff;
 }
 
 /* ==================== Затемнение фона ==================== */
@@ -392,15 +395,116 @@ a:hover {
     gap: 12px;
 }
 
+/* ==================== Выпадающее меню пользователя ==================== */
 .user-menu {
+    position: relative;
+}
+
+.user-menu-btn {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.user-menu-btn:hover {
+    background-color: var(--bg-surface-secondary);
+    border-color: var(--color-primary);
+}
+
+.user-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar-small span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
 }
 
 .user-name {
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.user-menu-arrow {
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.user-menu.open .user-menu-arrow {
+    transform: rotate(180deg);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 8px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+.user-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    color: var(--text-primary);
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-surface-secondary);
+    color: var(--color-primary);
+}
+
+.dropdown-logout {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color-light);
+    color: var(--color-error);
+}
+
+.dropdown-logout:hover {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
 }
 
 /* ==================== Бейджи ==================== */
@@ -699,6 +803,16 @@ a:hover {
     margin-top: 6px;
     font-size: 0.8125rem;
     color: var(--text-muted);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-row-3 {
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 /* ==================== Чекбоксы и радиокнопки ==================== */

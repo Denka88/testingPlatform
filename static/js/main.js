@@ -177,6 +177,40 @@
             item.classList.add('active');
         });
     });
+    
+    // Выпадающее меню пользователя
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userDropdown = document.getElementById('userDropdown');
+    const userMenuContainer = userMenuBtn ? userMenuBtn.closest('.user-menu') : null;
+    
+    if (userMenuBtn && userDropdown) {
+        userMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            userDropdown.classList.toggle('show');
+            if (userMenuContainer) {
+                userMenuContainer.classList.toggle('open');
+            }
+        });
+        
+        // Закрытие при клике вне меню
+        document.addEventListener('click', function() {
+            userDropdown.classList.remove('show');
+            if (userMenuContainer) {
+                userMenuContainer.classList.remove('open');
+            }
+        });
+        
+        // Закрытие при клике на пункт меню
+        const dropdownItems = userDropdown.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                userDropdown.classList.remove('show');
+                if (userMenuContainer) {
+                    userMenuContainer.classList.remove('open');
+                }
+            });
+        });
+    }
 })();
 
 // ==================== Автозакрытие сообщений ====================
