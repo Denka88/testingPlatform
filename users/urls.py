@@ -18,6 +18,7 @@ urlpatterns = [
     path('teacher/groups/', views.teacher_groups, name='teacher_groups'),
     path('teacher/subjects/', views.teacher_subjects, name='teacher_subjects'),
     path('teacher/tests/', views.teacher_tests, name='teacher_tests'),
+    path('teacher/tests/<int:subject_id>/', views.teacher_subject_tests, name='teacher_subject_tests'),
     path('teacher/results/', views.teacher_results, name='teacher_results'),
 
     # Student

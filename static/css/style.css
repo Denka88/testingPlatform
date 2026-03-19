@@ -5,23 +5,23 @@
     --color-primary-hover: #6d28d9;
     --color-primary-light: #ede9fe;
     --color-primary-dark: #5b21b6;
-    
+
     /* Фон */
     --bg-body: #f5f5f7;
     --bg-surface: #ffffff;
     --bg-surface-secondary: #f0f0f2;
     --bg-sidebar: #1a1a2e;
-    
+
     /* Текст */
     --text-primary: #1a1a2e;
     --text-secondary: #52525b;
     --text-muted: #a1a1aa;
     --text-inverse: #ffffff;
-    
+
     /* Границы */
     --border-color: #e4e4e7;
     --border-color-light: #f4f4f5;
-    
+
     /* Сообщения */
     --color-success: #22c55e;
     --color-success-bg: #dcfce7;
@@ -31,12 +31,12 @@
     --color-warning-bg: #fef3c7;
     --color-info: #3b82f6;
     --color-info-bg: #dbeafe;
-    
+
     /* Тени */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-    
+
     /* Размеры */
     --sidebar-width: 280px;
     --topbar-height: 64px;
@@ -50,25 +50,25 @@
     --color-primary-hover: #7c3aed;
     --color-primary-light: #2e1065;
     --color-primary-dark: #a78bfa;
-    
+
     --bg-body: #0f0f1a;
     --bg-surface: #1a1a2e;
     --bg-surface-secondary: #252542;
     --bg-sidebar: #0d0d1a;
-    
+
     --text-primary: #f4f4f5;
     --text-secondary: #a1a1aa;
     --text-muted: #71717a;
     --text-inverse: #1a1a2e;
-    
+
     --border-color: #27273a;
     --border-color-light: #27273a;
-    
+
     --color-success-bg: #14532d;
     --color-error-bg: #7f1d1d;
     --color-warning-bg: #78350f;
     --color-info-bg: #1e3a5f;
-    
+
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
@@ -130,7 +130,7 @@ a:hover {
     .sidebar {
         transform: translateX(-100%);
     }
-    
+
     .sidebar.open {
         transform: translateX(0);
     }
@@ -141,7 +141,7 @@ a:hover {
     .sidebar {
         transform: translateX(0);
     }
-    
+
     .sidebar.closed {
         transform: translateX(-100%);
     }
@@ -343,7 +343,7 @@ a:hover {
     .main-content.expanded {
         margin-left: 0;
     }
-    
+
     .sidebar-close {
         display: none;
     }
@@ -864,15 +864,15 @@ a:hover {
     .topbar-title {
         font-size: 1rem;
     }
-    
+
     .user-name {
         display: none;
     }
-    
+
     .stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .content {
         padding: 16px;
     }

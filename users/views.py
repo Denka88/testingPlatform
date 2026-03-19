@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 from .models import Profile, UserRole
 from .mixins import TeacherRequiredMixin, StudentRequiredMixin
 
@@ -130,19 +131,75 @@ def teacher_subjects(request):
 
 @login_required
 def teacher_tests(request):
-    """Тесты преподавателя"""
-    from tests.models import Test
-    
+    """Тесты преподавателя - список предметов"""
+    from groups.models import Subject
+
     if not request.user.is_teacher:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
+
+    # Поиск по предмету
+    search = request.GET.get('search', '')
     
+    # Получаем предметы преподавателя
+    subjects = Subject.objects.filter(
+        teachers=request.user
+    ).distinct().annotate(
+        tests_count=Count('tests', filter=Q(tests__created_by=request.user))
+    ).order_by('name')
+    
+    # Поиск по названию предмета
+    if search:
+        subjects = subjects.filter(name__icontains=search)
+
+    context = {
+        'subjects': subjects,
+        'search': search,
+    }
+    return render(request, 'users/teacher/tests.html', context)
+
+
+@login_required
+def teacher_subject_tests(request, subject_id):
+    """Тесты конкретного предмета"""
+    from tests.models import Test
+    from groups.models import Subject
+
+    if not request.user.is_teacher:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
+    
+    # Поиск по названию теста
+    search = request.GET.get('search', '')
+    
+    # Фильтр по статусу
+    status_filter = request.GET.get('status', '')
+    
+    # Получаем тесты предмета
     tests = Test.objects.filter(
+        subject=subject,
         created_by=request.user
     ).select_related('subject').prefetch_related('groups')
     
-    context = {'tests': tests}
-    return render(request, 'users/teacher/tests.html', context)
+    # Поиск по названию теста
+    if search:
+        tests = tests.filter(title__icontains=search)
+    
+    # Фильтр по статусу
+    if status_filter == 'published':
+        tests = tests.filter(is_published=True)
+    elif status_filter == 'draft':
+        tests = tests.filter(is_published=False)
+
+    context = {
+        'subject': subject,
+        'tests': tests,
+        'search': search,
+        'status_filter': status_filter,
+    }
+    return render(request, 'users/teacher/subject_tests.html', context)
 
 
 @login_required

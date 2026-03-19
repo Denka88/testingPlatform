@@ -45,22 +45,25 @@
     const menuToggle = document.getElementById('menuToggle');
     const sidebarClose = document.getElementById('sidebarClose');
     const mainContent = document.querySelector('.main-content');
-    
+
     const DESKTOP_BREAKPOINT = 1024;
-    
+
     // Проверка, десктоп ли сейчас
     function isDesktop() {
         return window.innerWidth >= DESKTOP_BREAKPOINT;
     }
-    
+
     // Открытие меню
     function openSidebar() {
         sidebar.classList.remove('closed');
         sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
+        // Overlay показываем только на мобильных
+        if (!isDesktop()) {
+            sidebarOverlay.classList.add('active');
+        }
         mainContent.classList.remove('expanded');
     }
-    
+
     // Закрытие меню
     function closeSidebar() {
         sidebar.classList.remove('open');
@@ -70,7 +73,7 @@
             mainContent.classList.add('expanded');
         }
     }
-    
+
     // Переключение меню
     function toggleSidebar() {
         if (isDesktop()) {
@@ -89,7 +92,7 @@
             }
         }
     }
-    
+
     // Инициализация состояния меню
     function initSidebarState() {
         if (isDesktop()) {
@@ -112,13 +115,13 @@
             sidebarOverlay.classList.remove('active');
         }
     }
-    
+
     // Сохранение состояния меню
     function saveSidebarState() {
         const isClosed = sidebar.classList.contains('closed');
         localStorage.setItem('sidebarClosed', isClosed ? 'true' : 'false');
     }
-    
+
     // Обработчики событий
     if (menuToggle) {
         menuToggle.addEventListener('click', function(e) {
@@ -126,7 +129,7 @@
             toggleSidebar();
         });
     }
-    
+
     if (sidebarClose) {
         sidebarClose.addEventListener('click', function() {
             if (isDesktop()) {
@@ -137,7 +140,7 @@
             }
         });
     }
-    
+
     if (sidebarOverlay) {
         sidebarOverlay.addEventListener('click', function() {
             if (!isDesktop()) {
@@ -145,14 +148,14 @@
             }
         });
     }
-    
+
     // Предотвращаем всплытие клика внутри sidebar
     if (sidebar) {
         sidebar.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     }
-    
+
     // Обработка изменения размера окна
     let resizeTimeout;
     window.addEventListener('resize', function() {
@@ -161,10 +164,10 @@
             initSidebarState();
         }, 250);
     });
-    
+
     // Инициализация
     initSidebarState();
-    
+
     // Подсветка активного пункта меню при клике
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(function(item) {
@@ -177,12 +180,12 @@
             item.classList.add('active');
         });
     });
-    
+
     // Выпадающее меню пользователя
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userDropdown = document.getElementById('userDropdown');
     const userMenuContainer = userMenuBtn ? userMenuBtn.closest('.user-menu') : null;
-    
+
     if (userMenuBtn && userDropdown) {
         userMenuBtn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -191,7 +194,7 @@
                 userMenuContainer.classList.toggle('open');
             }
         });
-        
+
         // Закрытие при клике вне меню
         document.addEventListener('click', function() {
             userDropdown.classList.remove('show');
@@ -199,7 +202,7 @@
                 userMenuContainer.classList.remove('open');
             }
         });
-        
+
         // Закрытие при клике на пункт меню
         const dropdownItems = userDropdown.querySelectorAll('.dropdown-item');
         dropdownItems.forEach(function(item) {
@@ -252,9 +255,9 @@ function confirmAction(message) {
 // Форматирование даты
 function formatDate(dateString) {
     const date = new Date(dateString);
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
+    const options = {
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'

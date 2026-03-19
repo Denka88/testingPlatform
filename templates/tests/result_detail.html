@@ -74,9 +74,15 @@
                         <span class="review-section-label">Ваш ответ:</span>
                         <div class="review-answers-list">
                             {% for answer in student_answer.answers.all %}
-                                <span class="review-answer-tag {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
-                                    {{ answer.text }}
-                                </span>
+                                {% if result.test.show_correct_answers %}
+                                    <span class="review-answer-tag {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                                        {{ answer.text }}
+                                    </span>
+                                {% else %}
+                                    <span class="review-answer-tag">
+                                        {{ answer.text }}
+                                    </span>
+                                {% endif %}
                             {% empty %}
                                 <span class="review-answer-tag no-answer">Нет ответа</span>
                             {% endfor %}
@@ -313,17 +319,18 @@
         border-radius: var(--border-radius);
         font-size: 0.875rem;
         border: 1px solid var(--border-color);
+        color: var(--text-primary);
     }
-    
+
     .review-answer-tag.correct {
-        background-color: var(--color-success-bg);
-        color: var(--color-success);
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
         border-color: var(--color-success);
     }
-    
+
     .review-answer-tag.incorrect {
-        background-color: var(--color-error-bg);
-        color: var(--color-error);
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
         border-color: var(--color-error);
     }
     
