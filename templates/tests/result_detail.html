@@ -8,10 +8,13 @@
 {% block content %}
 <div class="result-detail-container">
     <div class="result-header">
-        <a href="{% if user.is_student %}{% url 'student_results' %}{% else %}{% url 'teacher_results' %}{% endif %}" 
-           class="btn btn-secondary btn-sm">
-            ← Назад
-        </a>
+        <button onclick="history.back()" class="btn btn-secondary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Назад
+        </button>
     </div>
     
     <div class="result-card-main">
@@ -152,7 +155,7 @@
 {% block extra_css %}
 <style>
     .result-detail-container {
-        max-width: 900px;
+        width: 100%;
     }
     
     .result-header {

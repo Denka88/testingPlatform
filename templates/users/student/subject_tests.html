@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}{{ subject.name }} - Тесты{% endblock %}
+
+{% block topbar_title %}{{ subject.name }}{% endblock %}
+
+{% block content %}
+<div class="tests-container">
+    <!-- Заголовок и кнопка -->
+    <div class="tests-header mb-3">
+        <div class="tests-breadcrumb">
+            <a href="{% url 'student_subjects' %}" class="breadcrumb-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Предметы
+            </a>
+            <span class="breadcrumb-sep">/</span>
+            <span class="breadcrumb-current">{{ subject.name }}</span>
+        </div>
+    </div>
+    
+    <!-- Поиск -->
+    <div class="search-bar card mb-3">
+        <form method="get" class="search-form">
+            <div class="search-row">
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="form-input" 
+                    placeholder="Поиск теста..."
+                    value="{{ search }}"
+                >
+                <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+                {% if search %}
+                    <a href="{% url 'student_subject_tests' subject.id %}" class="btn btn-secondary btn-sm">Сбросить</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    
+    <!-- Список тестов -->
+    {% if tests %}
+        <div class="tests-list">
+            {% for test in tests %}
+            <div class="test-card">
+                <div class="test-card-header">
+                    <div class="test-card-title">
+                        <h3 class="test-name">{{ test.title }}</h3>
+                    </div>
+                </div>
+                
+                <div class="test-card-body">
+                    {% if test.description %}
+                        <p class="test-description">{{ test.description|truncatewords:15 }}</p>
+                    {% endif %}
+                    
+                    <div class="test-card-meta">
+                        <div class="test-meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>{{ test.time_limit }} мин</span>
+                        </div>
+                        <div class="test-meta-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span>{{ test.questions.count }} вопросов</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-card-footer">
+                    {% if test.id in completed_tests_dict %}
+                        <a href="{% url 'test_result_detail' completed_tests_dict|get_item:test.id %}" class="btn btn-secondary btn-sm">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                            </svg>
+                            Результат
+                        </a>
+                    {% else %}
+                        <a href="{% url 'test_take' test.id %}" class="btn btn-primary btn-sm">
+                            Начать тестирование
+                        </a>
+                    {% endif %}
+                    <span class="test-date">{{ test.updated_at|date:"d.m.Y" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <h3 class="empty-state-title">Тесты не найдены</h3>
+            <p class="empty-state-text">
+                {% if search %}
+                    Попробуйте изменить поисковый запрос
+                {% else %}
+                    По этому предмету нет доступных тестов
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tests-container {
+        width: 100%;
+    }
+    
+    .tests-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .tests-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9375rem;
+    }
+    
+    .breadcrumb-link {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        text-decoration: none;
+    }
+    
+    .breadcrumb-link:hover {
+        color: var(--color-primary);
+    }
+    
+    .breadcrumb-sep {
+        color: var(--text-muted);
+    }
+    
+    .breadcrumb-current {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+    
+    .search-bar {
+        padding: 20px;
+    }
+    
+    .search-form {
+        width: 100%;
+    }
+    
+    .search-row {
+        display: flex;
+        gap: 12px;
+    }
+    
+    .search-row .form-input {
+        flex: 1;
+    }
+    
+    .tests-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .test-card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-lg);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+    
+    .test-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .test-card-header {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border-color-light);
+    }
+    
+    .test-card-title {
+        flex: 1;
+    }
+    
+    .test-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .test-card-body {
+        padding: 20px 24px;
+    }
+    
+    .test-description {
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+    }
+    
+    .test-card-meta {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .test-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .test-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 24px;
+        background-color: var(--bg-surface-secondary);
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .test-date {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+    
+    @media (max-width: 600px) {
+        .tests-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        
+        .test-card-footer {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}

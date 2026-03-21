@@ -291,10 +291,8 @@ def student_dashboard(request):
 
 @login_required
 def student_subjects(request):
-    """Предметы студента с тестами"""
-    from tests.models import Test
+    """Предметы студента - список карточек предметов"""
     from groups.models import Subject
-    from results.models import Result
 
     if not request.user.is_student:
         messages.error(request, 'У вас нет доступа к этой странице')
@@ -307,14 +305,50 @@ def student_subjects(request):
         messages.warning(request, 'Вы не прикреплены к группе.')
         return redirect('student_dashboard')
 
-    # Предметы группы студента с.prefetch для тестов
+    # Поиск по предмету
+    search = request.GET.get('search', '')
+
+    # Получаем предметы группы студента
     subjects = Subject.objects.filter(
         groups=profile.group
-    ).prefetch_related(
-        'tests__groups'
-    )
+    ).distinct().annotate(
+        tests_count=Count('tests', filter=Q(
+            tests__groups=profile.group,
+            tests__is_published=True
+        ))
+    ).order_by('name')
 
-    # Получаем все пройденные тесты студентом с результатами
+    # Поиск по названию предмета
+    if search:
+        subjects = subjects.filter(name__icontains=search)
+
+    context = {
+        'subjects': subjects,
+        'search': search,
+    }
+    return render(request, 'users/student/subjects.html', context)
+
+
+@login_required
+def student_subject_tests(request, subject_id):
+    """Тесты конкретного предмета для студента"""
+    from tests.models import Test
+    from groups.models import Subject
+    from results.models import Result
+
+    if not request.user.is_student:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id, groups=request.user.profile.group if request.user.profile else None)
+
+    user = request.user
+    profile = getattr(user, 'profile', None)
+
+    # Поиск по названию теста
+    search = request.GET.get('search', '')
+
+    # Получаем все пройденные тесты студентом
     completed_results = Result.objects.filter(
         student=user,
         is_reset=False,
@@ -324,22 +358,24 @@ def student_subjects(request):
     # Создаём словарь: test_id -> result_id
     completed_tests_dict = {r.test.id: r.id for r in completed_results}
 
-    # Фильтруем тесты для каждого предмета
-    subjects_list = []
-    for subject in subjects:
-        subject_tests = Test.objects.filter(
-            subject=subject,
-            groups=profile.group,
-            is_published=True
-        )
-        subjects_list.append({
-            'subject': subject,
-            'tests': subject_tests,
-            'completed_tests_dict': completed_tests_dict
-        })
+    # Получаем тесты предмета
+    tests = Test.objects.filter(
+        subject=subject,
+        groups=profile.group if profile else None,
+        is_published=True
+    ).select_related('subject').prefetch_related('groups')
 
-    context = {'subjects': subjects_list}
-    return render(request, 'users/student/subjects.html', context)
+    # Поиск по названию теста
+    if search:
+        tests = tests.filter(title__icontains=search)
+
+    context = {
+        'subject': subject,
+        'tests': tests,
+        'completed_tests_dict': completed_tests_dict,
+        'search': search,
+    }
+    return render(request, 'users/student/subject_tests.html', context)
 
 
 @login_required
