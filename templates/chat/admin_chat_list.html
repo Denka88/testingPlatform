@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Администратор - Просмотр чатов{% endblock %}
+
+{% block topbar_title %}Просмотр чатов{% endblock %}
+
+{% block content %}
+<div class="admin-chat-container">
+    <div class="admin-chat-info">
+        <p>Просмотр всех переписок между пользователями системы</p>
+    </div>
+
+    <div class="admin-conversations-list">
+        {% if conversations %}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Участники</th>
+                        <th>Сообщений</th>
+                        <th>Последнее сообщение</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conv in conversations %}
+                        <tr>
+                            <td>
+                                <div class="users-cell">
+                                    <div class="user-chip">
+                                        {% if conv.user1.profile.avatar %}
+                                            <img src="{{ conv.user1.profile.avatar.url }}" alt="{{ conv.user1.last_name }}">
+                                        {% else %}
+                                            <span>{{ conv.user1.first_name|first }}{{ conv.user1.last_name|first }}</span>
+                                        {% endif %}
+                                        <span>{{ conv.user1.last_name }} {{ conv.user1.first_name }}</span>
+                                    </div>
+                                    <span class="vs">↔</span>
+                                    <div class="user-chip">
+                                        {% if conv.user2.profile.avatar %}
+                                            <img src="{{ conv.user2.profile.avatar.url }}" alt="{{ conv.user2.last_name }}">
+                                        {% else %}
+                                            <span>{{ conv.user2.first_name|first }}{{ conv.user2.last_name|first }}</span>
+                                        {% endif %}
+                                        <span>{{ conv.user2.last_name }} {{ conv.user2.first_name }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ conv.message_count }}</td>
+                            <td>{{ conv.last_message|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'chat:admin_chat' conv.user1.id conv.user2.id %}" class="btn-view">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    Просмотреть
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-conversations">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <p>Пока нет переписок</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.admin-chat-container {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.admin-chat-info {
+    margin-bottom: 20px;
+    color: var(--text-muted);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table th {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.admin-table tr:hover {
+    background: var(--hover-bg);
+}
+
+.users-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-color);
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.user-chip span:last-child {
+    font-weight: 500;
+}
+
+.user-chip img,
+.user-chip span:first-child {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.user-chip img {
+    object-fit: cover;
+}
+
+.vs {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.btn-view {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    transition: opacity 0.2s;
+}
+
+.btn-view:hover {
+    opacity: 0.9;
+}
+
+.no-conversations {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.no-conversations svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}

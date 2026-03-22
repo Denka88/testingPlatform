@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Администратор - Переписка {{ user1.last_name }} и {{ user2.last_name }}{% endblock %}
+
+{% block topbar_title %}
+    <a href="{% url 'chat:admin_chat_list' %}" class="chat-back-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+    </a>
+    <span class="chat-with-user">
+        <span>Переписка:</span>
+        <strong>{{ user1.last_name }} {{ user1.first_name }}</strong>
+        <span>↔</span>
+        <strong>{{ user2.last_name }} {{ user2.first_name }}</strong>
+    </span>
+{% endblock %}
+
+{% block content %}
+<div class="admin-chat-view">
+    <div class="admin-chat-header">
+        <div class="user-info">
+            <div class="user-avatar-large">
+                {% if user1.profile.avatar %}
+                    <img src="{{ user1.profile.avatar.url }}" alt="{{ user1.last_name }}">
+                {% else %}
+                    <span>{{ user1.first_name|first }}{{ user1.last_name|first }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <div class="user-name">{{ user1.last_name }} {{ user1.first_name }}</div>
+                <div class="user-role">{{ user1.get_role_display }}</div>
+            </div>
+        </div>
+        <div class="vs-icon">↔</div>
+        <div class="user-info">
+            <div class="user-avatar-large">
+                {% if user2.profile.avatar %}
+                    <img src="{{ user2.profile.avatar.url }}" alt="{{ user2.last_name }}">
+                {% else %}
+                    <span>{{ user2.first_name|first }}{{ user2.last_name|first }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <div class="user-name">{{ user2.last_name }} {{ user2.first_name }}</div>
+                <div class="user-role">{{ user2.get_role_display }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-messages">
+        {% for message in messages %}
+            <div class="admin-message {% if message.sender.id == user1.id %}from-user1{% else %}from-user2{% endif %}">
+                <div class="message-sender-badge">
+                    {% if message.sender.profile.avatar %}
+                        <img src="{{ message.sender.profile.avatar.url }}" alt="{{ message.sender.last_name }}">
+                    {% else %}
+                        <span>{{ message.sender.first_name|first }}{{ message.sender.last_name|first }}</span>
+                    {% endif %}
+                </div>
+                <div class="message-body">
+                    <div class="message-meta">
+                        <span class="sender-name">{{ message.sender.get_full_name|default:message.sender.username }}</span>
+                        <span class="message-date">{{ message.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                    <div class="message-text">{{ message.text|linebreaksbr }}</div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="no-messages">
+                <p>В этой переписке нет сообщений</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.admin-chat-view {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.admin-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 20px;
+    background: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 18px;
+    overflow: hidden;
+}
+
+.user-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.user-role {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.vs-icon {
+    font-size: 20px;
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.admin-messages {
+    padding: 20px;
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+}
+
+.admin-message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg-color);
+}
+
+.message-sender-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.message-sender-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.sender-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.message-date {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.message-text {
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.no-messages {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.chat-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--hover-bg);
+    color: var(--text-color);
+    margin-right: 12px;
+    transition: background-color 0.2s;
+}
+
+.chat-back-btn:hover {
+    background: var(--border-color);
+}
+
+.chat-with-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.chat-with-user strong {
+    font-weight: 600;
+}
+</style>
+{% endblock %}

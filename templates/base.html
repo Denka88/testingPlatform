@@ -116,6 +116,27 @@
                         </div>
                     {% endif %}
 
+                    <!-- Чат (для студентов и преподавателей) -->
+                    {% if user.is_student or user.is_teacher %}
+                        <a href="{% url 'chat:contacts' %}" class="nav-item {% if 'chat' in request.resolver_match.url_name and 'admin' not in request.resolver_match.url_name %}active{% endif %}">
+                            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span>Чат</span>
+                        </a>
+                    {% endif %}
+
+                    <!-- Чат для администратора (просмотр) -->
+                    {% if user.is_admin %}
+                        <a href="{% url 'chat:admin_chat_list' %}" class="nav-item {% if 'admin_chat' in request.resolver_match.url_name %}active{% endif %}">
+                            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <span>Чаты пользователей</span>
+                        </a>
+                    {% endif %}
+
                     <a href="{% url 'logout' %}" class="nav-item nav-item-logout">
                         <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

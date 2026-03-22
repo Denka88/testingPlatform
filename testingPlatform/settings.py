@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,6 +42,8 @@ INSTALLED_APPS = [
     'groups.apps.GroupsConfig',
     'tests.apps.TestsConfig',
     'results.apps.ResultsConfig',
+    'chat.apps.ChatConfig',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -128,3 +131,16 @@ AUTH_USER_MODEL = 'users.User'
 # Media files (avatars, test images, etc.)
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Django Channels settings
+ASGI_APPLICATION = 'testingPlatform.asgi.application'
+
+# Channel layers configuration (in-memory for development)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}

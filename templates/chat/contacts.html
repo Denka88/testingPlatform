@@ -1,0 +1,1014 @@
+{% extends 'base.html' %}
+
+{% block title %}Чат{% endblock %}
+
+{% block topbar_title %}Чат{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Скрываем сообщения Django messages на странице чата */
+.messages { display: none !important; }
+
+.chat-full-container {
+    display: flex;
+    height: calc(100vh - 140px);
+    gap: 1px;
+    background: var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.chat-contacts-panel {
+    width: 380px;
+    background: var(--card-bg);
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid #ccc !important;
+}
+
+.chat-panel {
+    flex: 1;
+    background: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #ccc !important;
+}
+
+.chat-search {
+    padding: 16px;
+    border-bottom: 2px solid #ccc !important;
+    background: var(--card-bg);
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 40px 10px 40px;
+    border: 2px solid #ccc !important;
+    border-radius: 8px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.search-clear {
+    position: absolute;
+    right: 10px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.contacts-list, .search-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.contacts-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 12px 12px 8px;
+    margin: 0;
+}
+
+.contacts-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.contact-item {
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.contact-item:hover {
+    background: var(--hover-bg);
+}
+
+.contact-item.has-unread {
+    background: var(--hover-bg);
+}
+
+.contact-item.active {
+    background: var(--hover-bg);
+    border-left: 3px solid var(--primary-color);
+}
+
+.contact-item .add-contact-btn {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.contact-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 12px 12px 12px;
+    text-decoration: none;
+    color: inherit;
+    gap: 12px;
+    padding-right: 80px;
+}
+
+.contact-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 18px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.contact-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.unread-badge {
+    background: #dc3545;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+}
+
+.contact-last-message {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contact-last-message.unread {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.contact-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.contact-email {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.add-contact-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--primary-color);
+    background: transparent;
+    color: var(--primary-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.add-contact-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.add-contact-btn.added {
+    background: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+    cursor: default;
+}
+
+.no-contacts {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.no-contacts .hint {
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.chat-empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-color);
+}
+
+.empty-state-content {
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-content h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 8px 0;
+}
+
+.empty-state-content p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.sent-indicator {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.search-result .contact-link {
+    padding: 8px 12px;
+}
+
+/* Chat panel styles */
+.chat-header {
+    padding: 16px 20px;
+    background: var(--card-bg);
+    border-bottom: 2px solid #ccc !important;
+}
+
+.chat-header-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.chat-header-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
+    overflow: hidden;
+}
+
+.chat-header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.chat-header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header-name {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.chat-header-role {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-message {
+    display: flex;
+    gap: 12px;
+    max-width: 70%;
+}
+
+.chat-message.own {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-message.own .message-content {
+    align-items: flex-end;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.message-sender {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+.message-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.message-text {
+    background: var(--card-bg);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.chat-message.own .message-text {
+    background: var(--primary-color);
+    color: #333;
+}
+
+/* Тёмная тема */
+[data-theme="dark"] .chat-contacts-panel {
+    border-right: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .chat-panel {
+    border-left: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .chat-search {
+    border-bottom: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .chat-header {
+    border-bottom: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .chat-input-area {
+    border-top: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .search-input {
+    border: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .message-input {
+    border: 2px solid #444 !important;
+}
+
+[data-theme="dark"] .message-text {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .chat-message.own .message-text {
+    color: #e0e0e0;
+}
+
+.chat-no-messages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.chat-no-messages svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.chat-no-messages .hint {
+    font-size: 13px;
+    margin-top: 8px;
+    opacity: 0.7;
+}
+
+.chat-input-area {
+    padding: 16px 20px;
+    background: var(--card-bg);
+    border-top: 2px solid #ccc !important;
+    flex-shrink: 0;
+}
+
+.message-form {
+    display: flex;
+    gap: 12px;
+}
+
+.message-input-wrapper {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+}
+
+.message-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #ccc !important;
+    border-radius: 24px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.send-btn:hover {
+    background: var(--primary-color-dark);
+    transform: scale(1.05);
+}
+
+.send-btn:active {
+    transform: scale(0.95);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Скроллбар */
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .chat-contacts-panel {
+        width: 100%;
+    }
+    
+    .chat-panel {
+        display: none;
+    }
+    
+    .chat-panel.active {
+        display: flex;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-full-container">
+    <!-- Левая панель - Контакты -->
+    <div class="chat-contacts-panel">
+        <!-- Поиск пользователей -->
+        <div class="chat-search">
+            <form id="searchForm" method="GET" action="{% url 'chat:contacts' %}">
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        name="search"
+                        class="search-input"
+                        placeholder="Поиск пользователей..."
+                        value="{{ search_query }}"
+                        id="searchInput"
+                        autocomplete="off"
+                    >
+                    {% if search_query %}
+                        <a href="{% url 'chat:contacts' %}" class="search-clear">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Список контактов -->
+        <div class="contacts-list">
+            <h3 class="contacts-title">Мои контакты</h3>
+
+            {% if contacts %}
+                <ul class="contacts-ul">
+                    {% for item in contacts %}
+                        <li class="contact-item {% if item.unread_count > 0 %}has-unread{% endif %} {% if active_chat and item.contact.id == active_chat.id %}active{% endif %}">
+                            <a href="?chat={{ item.contact.id }}" class="contact-link">
+                                <div class="contact-avatar">
+                                    {% if item.contact.profile.avatar %}
+                                        <img src="{{ item.contact.profile.avatar.url }}" alt="{{ item.contact.last_name }}">
+                                    {% else %}
+                                        <span>{{ item.contact.first_name|first }}{{ item.contact.last_name|first }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="contact-info">
+                                    <div class="contact-name">
+                                        {{ item.contact.last_name }} {{ item.contact.first_name }}
+                                        {% if item.unread_count > 0 %}
+                                            <span class="unread-badge">{{ item.unread_count }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if item.last_message %}
+                                        <div class="contact-last-message {% if item.unread_count > 0 %}unread{% endif %}">
+                                            {% if item.last_message.sender.id == user.id %}
+                                                <span class="sent-indicator">Вы:</span>
+                                            {% endif %}
+                                            {{ item.last_message.text|truncatechars:40 }}
+                                        </div>
+                                        <div class="contact-time">{{ item.last_message.created_at|date:"H:i" }}</div>
+                                    {% else %}
+                                        <div class="contact-last-message">Нет сообщений</div>
+                                    {% endif %}
+                                </div>
+                            </a>
+                            {% if not item.is_contact %}
+                                <button
+                                    class="add-contact-btn"
+                                    data-user-id="{{ item.contact.id }}"
+                                    data-user-name="{{ item.contact.last_name }} {{ item.contact.first_name }}"
+                                >
+                                    Добавить
+                                </button>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="no-contacts">
+                    <p>У вас пока нет контактов</p>
+                    <p class="hint">Используйте поиск, чтобы найти пользователей</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Результаты поиска -->
+        {% if users_found %}
+            <div class="search-results">
+                <h3 class="contacts-title">Результаты поиска</h3>
+                <ul class="contacts-ul">
+                    {% for item in users_found %}
+                        <li class="contact-item search-result">
+                            <div class="contact-link">
+                                <div class="contact-avatar">
+                                    {% if item.user.profile.avatar %}
+                                        <img src="{{ item.user.profile.avatar.url }}" alt="{{ item.user.last_name }}">
+                                    {% else %}
+                                        <span>{{ item.user.first_name|first }}{{ item.user.last_name|first }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="contact-info">
+                                    <div class="contact-name">
+                                        {{ item.user.last_name }} {{ item.user.first_name }}
+                                    </div>
+                                    <div class="contact-email">{{ item.user.email }}</div>
+                                </div>
+                                <button
+                                    class="add-contact-btn {% if item.is_contact %}added{% endif %}"
+                                    data-user-id="{{ item.user.id }}"
+                                    data-user-name="{{ item.user.last_name }} {{ item.user.first_name }}"
+                                >
+                                    {% if item.is_contact %}
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    {% else %}
+                                        Добавить
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Правая панель - Чат -->
+    <div class="chat-panel">
+        {% if active_chat %}
+            <div class="chat-header">
+                <div class="chat-header-user">
+                    <div class="chat-header-avatar">
+                        {% if active_chat.profile.avatar %}
+                            <img src="{{ active_chat.profile.avatar.url }}" alt="{{ active_chat.last_name }}">
+                        {% else %}
+                            <span>{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="chat-header-info">
+                        <span class="chat-header-name">{{ active_chat.last_name }} {{ active_chat.first_name }}</span>
+                        <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                {% for message in messages %}
+                    <div class="chat-message {% if message.sender.id == user.id %}own{% else %}other{% endif %}">
+                        <div class="message-avatar">
+                            {% if message.sender.profile.avatar %}
+                                <img src="{{ message.sender.profile.avatar.url }}" alt="{{ message.sender.last_name }}">
+                            {% else %}
+                                <span>{{ message.sender.first_name|first }}{{ message.sender.last_name|first }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">{{ message.sender.get_full_name|default:message.sender.username }}</span>
+                                <span class="message-time">{{ message.created_at|date:"H:i" }}</span>
+                            </div>
+                            <div class="message-text">{{ message.text|linebreaksbr }}</div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="chat-no-messages">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <p>Здесь пока нет сообщений</p>
+                        <p class="hint">Отправьте первое сообщение!</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="chat-input-area">
+                <form id="messageForm" class="message-form">
+                    <div class="message-input-wrapper">
+                        <input
+                            type="text"
+                            id="messageInput"
+                            class="message-input"
+                            placeholder="Введите сообщение..."
+                            autocomplete="off"
+                            maxlength="2000"
+                        >
+                        <button type="submit" class="send-btn" id="sendBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <div class="chat-empty-state">
+                <div class="empty-state-content">
+                    <svg class="empty-state-icon" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <h2>Выберите контакт</h2>
+                    <p>Выберите пользователя из списка контактов или найдите нового</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const activeChatId = {{ active_chat.id|default:"null" }};
+const currentUserId = {{ user.id }};
+
+{% if active_chat %}
+const otherUserAvatarUrl = '{% if active_chat.profile.avatar %}{{ active_chat.profile.avatar.url }}{% else %}{% endif %}';
+const userAvatarUrl = '{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}{% endif %}';
+const userInitials = '{{ user.first_name|first }}{{ user.last_name|first }}';
+const otherUserInitials = '{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}';
+{% else %}
+const otherUserAvatarUrl = '';
+const userAvatarUrl = '';
+const userInitials = '';
+const otherUserInitials = '';
+{% endif %}
+
+let chatSocket = null;
+
+function connectChat() {
+    if (!activeChatId) return;
+    
+    chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + activeChatId + '/'
+    );
+
+    chatSocket.onopen = function() {
+        // WebSocket connected
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'history') {
+            scrollToBottom();
+            // Убираем бейдж непрочитанных сообщений
+            removeUnreadBadge();
+        } else if (data.type === 'message') {
+            appendMessage(data);
+        }
+    };
+
+    chatSocket.onclose = function() {
+        setTimeout(connectChat, 2000);
+    };
+
+    chatSocket.onerror = function(e) {
+        // WebSocket error
+    };
+}
+
+function appendMessage(data) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const isOwn = data.sender_id === currentUserId;
+
+    const noMessages = messagesContainer.querySelector('.chat-no-messages');
+    if (noMessages) {
+        noMessages.remove();
+    }
+
+    const avatarUrl = isOwn ? userAvatarUrl : otherUserAvatarUrl;
+    const avatarInitials = isOwn ? userInitials : otherUserInitials;
+    const senderName = isOwn ? '{{ user.get_full_name|default:user.username }}' : data.sender_name;
+
+    let time = '';
+    try {
+        const date = new Date(data.timestamp);
+        if (!isNaN(date.getTime())) {
+            time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        } else {
+            time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+    } catch (e) {
+        time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ' + (isOwn ? 'own' : 'other');
+
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            ${avatarUrl ? `<img src="${avatarUrl}" alt="${escapeHtml(senderName)}">` : `<span>${avatarInitials}</span>`}
+        </div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-sender">${escapeHtml(senderName)}</span>
+                <span class="message-time">${time}</span>
+            </div>
+            <div class="message-text">${escapeHtml(data.message).replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+
+    messagesContainer.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    const messagesContainer = document.getElementById('chatMessages');
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function removeUnreadBadge() {
+    // Убираем бейдж непрочитанных сообщений у активного контакта
+    const activeContact = document.querySelector('.contact-item.active .unread-badge');
+    if (activeContact) {
+        activeContact.remove();
+    }
+    // Также убираем класс has-unread
+    const activeContactItem = document.querySelector('.contact-item.active');
+    if (activeContactItem) {
+        activeContactItem.classList.remove('has-unread');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Функция для получения CSRF токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Инициализация после загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик формы отправки сообщения
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+
+    if (messageForm && messageInput) {
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.send(JSON.stringify({
+                    message: message
+                }));
+                input.value = '';
+            }
+        });
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    }
+
+    // Обработчик кнопки добавления контакта (делегирование событий)
+    const contactsPanel = document.querySelector('.chat-contacts-panel');
+    if (!contactsPanel) {
+        console.error('Contacts panel not found');
+        return;
+    }
+    
+    contactsPanel.addEventListener('click', function(e) {
+        const btn = e.target.closest('.add-contact-btn:not(.added)');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const userId = btn.dataset.userId;
+        const userName = btn.dataset.userName;
+
+        console.log('Adding contact:', userId, userName);
+
+        fetch('{% url "chat:add_contact" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: 'user_id=' + userId
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                btn.classList.add('added');
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                // Перезагружаем страницу для обновления списка
+                setTimeout(() => {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('search');
+                    window.location.href = url.toString();
+                }, 500);
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при добавлении контакта');
+        });
+    });
+
+    // Подключение WebSocket при загрузке
+    if (activeChatId) {
+        connectChat();
+    }
+});
+</script>
+{% endblock %}
