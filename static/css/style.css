@@ -905,3 +905,407 @@ a:hover {
 .gap-3 { gap: 24px; }
 
 .hidden { display: none; }
+.hidden-inline { display: none !important; }
+.inline-flex { display: inline-flex; }
+
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+
+/* ==================== Бейджи оценок ==================== */
+.grade-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9375rem;
+}
+
+.grade-5 {
+    color: #22c55e;
+}
+
+.grade-4 {
+    color: #3b82f6;
+}
+
+.grade-3 {
+    color: #f59e0b;
+}
+
+.grade-2 {
+    color: #ef4444;
+}
+
+[data-theme="dark"] .grade-5 {
+    color: #4ade80;
+}
+
+[data-theme="dark"] .grade-4 {
+    color: #60a5fa;
+}
+
+[data-theme="dark"] .grade-3 {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .grade-2 {
+    color: #f87171;
+}
+
+/* Бейджи оценок для детального просмотра результатов */
+.result-grade-main {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 2.5rem;
+}
+
+.result-grade-main.grade-5 { color: #22c55e; }
+.result-grade-main.grade-4 { color: #3b82f6; }
+.result-grade-main.grade-3 { color: #f59e0b; }
+.result-grade-main.grade-2 { color: #ef4444; }
+
+[data-theme="dark"] .result-grade-main.grade-5 { color: #4ade80; }
+[data-theme="dark"] .result-grade-main.grade-4 { color: #60a5fa; }
+[data-theme="dark"] .result-grade-main.grade-3 { color: #fbbf24; }
+[data-theme="dark"] .result-grade-main.grade-2 { color: #f87171; }
+
+.grade-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.grade-value.grade-5 { color: #22c55e; }
+.grade-value.grade-4 { color: #3b82f6; }
+.grade-value.grade-3 { color: #f59e0b; }
+.grade-value.grade-2 { color: #ef4444; }
+
+[data-theme="dark"] .grade-value.grade-5 { color: #4ade80; }
+[data-theme="dark"] .grade-value.grade-4 { color: #60a5fa; }
+[data-theme="dark"] .grade-value.grade-3 { color: #fbbf24; }
+[data-theme="dark"] .grade-value.grade-2 { color: #f87171; }
+
+/* ==================== Формы ==================== */
+.filters-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ==================== Карточки предметов ==================== */
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.subject-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.subject-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    transition: all 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.subject-card-link:hover .subject-card {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.subject-card-header {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.subject-card-icon {
+    width: 48px;
+    height: 48px;
+    background-color: var(--color-primary-light);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.subject-card-info {
+    flex: 1;
+}
+
+.subject-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.subject-card-count {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.subject-card-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 12px;
+}
+
+/* ==================== Навигация (хлебные крошки) ==================== */
+.tests-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9375rem;
+}
+
+.breadcrumb-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+    color: var(--color-primary);
+}
+
+.breadcrumb-sep {
+    color: var(--text-muted);
+}
+
+.breadcrumb-current {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* ==================== Контейнеры тестов ==================== */
+.tests-container {
+    width: 100%;
+}
+
+.tests-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.search-bar {
+    padding: 20px;
+}
+
+.search-form {
+    width: 100%;
+}
+
+.search-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.search-row .form-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.subjects-container {
+    width: 100%;
+}
+
+.subjects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.search-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.search-form .form-input {
+    width: 250px;
+}
+
+.search-form .btn {
+    align-self: stretch;
+}
+
+.search-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.search-row .btn {
+    align-self: stretch;
+}
+
+@media (max-width: 768px) {
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== Формы (общие стили) ==================== */
+.form-container {
+    width: 100%;
+    max-width: 700px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== Модальные окна ==================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: var(--bg-surface);
+    border-radius: var(--border-radius-lg);
+    padding: 32px;
+    max-width: 450px;
+    width: 90%;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.modal-text {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.result-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.result-card {
+    background-color: var(--bg-surface);
+    border-radius: var(--border-radius-lg);
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
+.result-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    background-color: var(--color-success);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.result-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+}
+
+.result-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 32px;
+}
+
+.result-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.result-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.result-stat-label {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}

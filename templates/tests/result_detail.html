@@ -191,28 +191,12 @@
         font-size: 0.9375rem;
     }
     
-    .result-grade-main {
-        width: 80px;
-        height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        font-weight: 700;
-        font-size: 2.5rem;
-    }
-
-    .result-grade-main.grade-5 { background-color: #22c55e; color: white; }
-    .result-grade-main.grade-4 { background-color: #3b82f6; color: white; }
-    .result-grade-main.grade-3 { background-color: #f59e0b; color: white; }
-    .result-grade-main.grade-2 { background-color: #ef4444; color: white; }
-
     .result-stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 16px;
     }
-    
+
     .result-stat-card {
         display: flex;
         flex-direction: column;
@@ -221,28 +205,18 @@
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
     }
-    
+
     .result-stat-label {
         font-size: 0.8125rem;
         color: var(--text-muted);
     }
-    
+
     .result-stat-value {
         font-size: 1.125rem;
         font-weight: 600;
         color: var(--text-primary);
     }
-    
-    .grade-value {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-    
-    .grade-value.grade-5 { color: #22c55e; }
-    .grade-value.grade-4 { color: #3b82f6; }
-    .grade-value.grade-3 { color: #f59e0b; }
-    .grade-value.grade-2 { color: #ef4444; }
-    
+
     .answer-review {
         padding: 20px;
         background-color: var(--bg-surface-secondary);

@@ -91,7 +91,7 @@
             <button type="button" class="btn btn-primary" id="nextBtn">
                 Далее
             </button>
-            <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+            <button type="submit" class="btn btn-primary hidden-inline" id="submitBtn">
                 Завершить тест
             </button>
         </div>
@@ -99,7 +99,7 @@
 </div>
 
 <!-- Модальное окно подтверждения -->
-<div class="modal-overlay" id="submitModal" style="display: none;">
+<div class="modal-overlay hidden-inline" id="submitModal">
     <div class="modal">
         <h3 class="modal-title">Завершить тестирование?</h3>
         <p class="modal-text">
@@ -114,7 +114,7 @@
 </div>
 
 <!-- Результат -->
-<div class="result-overlay" id="resultOverlay" style="display: none;">
+<div class="result-overlay hidden-inline" id="resultOverlay">
     <div class="result-card">
         <div class="result-icon" id="resultIcon">✓</div>
         <h2 class="result-title">Тест завершен!</h2>
@@ -465,15 +465,15 @@
         currentQuestionEl.textContent = index + 1;
         
         prevBtn.disabled = index === 0;
-        
+
         if (index === questions.length - 1) {
-            nextBtn.style.display = 'none';
-            submitBtn.style.display = 'inline-flex';
+            nextBtn.classList.add('hidden-inline');
+            submitBtn.classList.remove('hidden-inline');
         } else {
-            nextBtn.style.display = 'inline-flex';
-            submitBtn.style.display = 'none';
+            nextBtn.classList.remove('hidden-inline');
+            submitBtn.classList.add('hidden-inline');
         }
-        
+
         // Сохраняем состояние выбора
         saveAnswers();
     }
@@ -539,15 +539,15 @@
     submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
         answeredCountEl.textContent = countAnswered();
-        submitModal.style.display = 'flex';
+        submitModal.classList.remove('hidden-inline');
     });
-    
+
     cancelSubmit.addEventListener('click', function() {
-        submitModal.style.display = 'none';
+        submitModal.classList.add('hidden-inline');
     });
-    
+
     confirmSubmit.addEventListener('click', function() {
-        submitModal.style.display = 'none';
+        submitModal.classList.add('hidden-inline');
         submitTest();
     });
     
@@ -584,7 +584,7 @@
         const gradeEl = document.getElementById('resultGrade');
         gradeEl.textContent = data.grade;
         gradeEl.className = 'result-stat-value grade-badge grade-' + data.grade;
-        
+
         const iconEl = document.getElementById('resultIcon');
         if (data.grade >= 4) {
             iconEl.textContent = '✓';
@@ -597,8 +597,8 @@
             iconEl.style.backgroundColor = 'var(--color-error)';
         }
 
-        resultOverlay.style.display = 'flex';
-        
+        resultOverlay.classList.remove('hidden-inline');
+
         // Отключаем предупреждение о закрытии страницы после завершения теста
         window.removeEventListener('beforeunload', preventClose);
     }

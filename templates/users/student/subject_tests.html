@@ -113,67 +113,29 @@
 
 {% block extra_css %}
 <style>
-    .tests-container {
-        width: 100%;
-    }
-    
-    .tests-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .tests-breadcrumb {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.9375rem;
-    }
-    
-    .breadcrumb-link {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--text-secondary);
-        text-decoration: none;
-    }
-    
-    .breadcrumb-link:hover {
-        color: var(--color-primary);
-    }
-    
-    .breadcrumb-sep {
-        color: var(--text-muted);
-    }
-    
-    .breadcrumb-current {
-        color: var(--text-primary);
-        font-weight: 500;
-    }
-    
     .search-bar {
         padding: 20px;
     }
-    
+
     .search-form {
         width: 100%;
     }
-    
+
     .search-row {
         display: flex;
         gap: 12px;
     }
-    
+
     .search-row .form-input {
         flex: 1;
     }
-    
+
     .tests-list {
         display: flex;
         flex-direction: column;
         gap: 20px;
     }
-    
+
     .test-card {
         background-color: var(--bg-surface);
         border: 1px solid var(--border-color);
@@ -181,42 +143,42 @@
         overflow: hidden;
         transition: all 0.2s ease;
     }
-    
+
     .test-card:hover {
         box-shadow: var(--shadow-md);
     }
-    
+
     .test-card-header {
         padding: 20px 24px;
         border-bottom: 1px solid var(--border-color-light);
     }
-    
+
     .test-card-title {
         flex: 1;
     }
-    
+
     .test-name {
         font-size: 1.125rem;
         font-weight: 600;
         color: var(--text-primary);
         margin: 0;
     }
-    
+
     .test-card-body {
         padding: 20px 24px;
     }
-    
+
     .test-description {
         color: var(--text-secondary);
         margin-bottom: 16px;
     }
-    
+
     .test-card-meta {
         display: flex;
         gap: 20px;
         flex-wrap: wrap;
     }
-    
+
     .test-meta-item {
         display: flex;
         align-items: center;
@@ -224,7 +186,7 @@
         font-size: 0.875rem;
         color: var(--text-secondary);
     }
-    
+
     .test-card-footer {
         display: flex;
         justify-content: space-between;
@@ -233,19 +195,19 @@
         background-color: var(--bg-surface-secondary);
         border-top: 1px solid var(--border-color);
     }
-    
+
     .test-date {
         font-size: 0.8125rem;
         color: var(--text-muted);
     }
-    
+
     @media (max-width: 600px) {
         .tests-header {
             flex-direction: column;
             gap: 16px;
             align-items: flex-start;
         }
-        
+
         .test-card-footer {
             flex-direction: column;
             gap: 12px;

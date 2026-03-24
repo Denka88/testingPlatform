@@ -111,30 +111,4 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .form-container {
-        width: 100%;
-        max-width: 700px;
-    }
-    
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    .form-actions {
-        display: flex;
-        gap: 12px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border-color);
-    }
-    
-    @media (max-width: 600px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-{% endblock %}
+{% block extra_css %}{% endblock %}

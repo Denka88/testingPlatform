@@ -11,7 +11,7 @@
             <h2 class="card-title">Результаты</h2>
             <div class="card-actions">
                 <form method="get" class="filters-form">
-                    <select name="test" class="form-select" style="width: auto;">
+                    <select name="test" class="form-select w-auto">
                         <option value="">Все тесты</option>
                         {% for test in tests %}
                             <option value="{{ test.id }}" {% if request.GET.test == test.id|stringformat:"s" %}selected{% endif %}>
@@ -110,54 +110,17 @@
     .results-container {
         width: 100%;
     }
-    
+
     .card-actions {
         display: flex;
         gap: 12px;
     }
-    
-    .filters-form {
-        display: flex;
-        gap: 8px;
-    }
-    
+
     .actions-cell {
         display: flex;
         gap: 8px;
     }
-    
-    .grade-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 32px;
-        height: 32px;
-        padding: 0 8px;
-        border-radius: 50%;
-        font-weight: 700;
-        font-size: 0.9375rem;
-    }
-    
-    .grade-5 {
-        background-color: #22c55e;
-        color: white;
-    }
-    
-    .grade-4 {
-        background-color: #3b82f6;
-        color: white;
-    }
-    
-    .grade-3 {
-        background-color: #f59e0b;
-        color: white;
-    }
-    
-    .grade-2 {
-        background-color: #ef4444;
-        color: white;
-    }
-    
+
     .badge-draft {
         background-color: var(--text-muted);
         color: white;

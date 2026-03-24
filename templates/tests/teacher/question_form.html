@@ -74,7 +74,7 @@
                                 <input type="radio" name="answer_correct" value="0" class="form-check-input" required>
                             </div>
                             <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
-                            <button type="button" class="btn btn-secondary btn-sm remove-answer" style="display:none;">
+                            <button type="button" class="btn btn-secondary btn-sm remove-answer hidden-inline">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -118,7 +118,7 @@
                             </button>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="addAnswerBtn" style="display:none;">
+                    <button type="button" class="btn btn-secondary btn-sm mt-2 hidden-inline" id="addAnswerBtn">
                         Добавить вариант
                     </button>
                 </div>
@@ -142,12 +142,12 @@
     const removeButtons = answersContainer.querySelectorAll('.remove-answer');
 
     // Показываем кнопку добавления ответа
-    addAnswerBtn.style.display = 'inline-flex';
+    addAnswerBtn.classList.remove('hidden-inline');
 
     // Показываем кнопки удаления на всех ответах кроме первого
     removeButtons.forEach((btn, index) => {
         if (index > 0) {
-            btn.style.display = 'inline-flex';
+            btn.classList.remove('hidden-inline');
         }
     });
 
@@ -221,65 +221,43 @@
 
 {% block extra_css %}
 <style>
-    .form-container {
-        width: 100%;
-        max-width: 700px;
-    }
-    
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    .form-actions {
-        display: flex;
-        gap: 12px;
-        padding-top: 20px;
-        border-top: 1px solid var(--border-color);
-    }
-    
     .answers-section {
         margin-top: 24px;
         padding: 20px;
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
     }
-    
+
     .answers-title {
         font-size: 1rem;
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 16px;
     }
-    
+
     .answer-row {
         display: flex;
         gap: 12px;
         align-items: center;
         margin-bottom: 12px;
     }
-    
+
     .answer-check {
         flex-shrink: 0;
         width: 24px;
         display: flex;
         justify-content: center;
     }
-    
+
     .answer-row .form-input {
         flex: 1;
     }
-    
+
     @media (max-width: 600px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-        
         .answer-row {
             flex-wrap: wrap;
         }
-        
+
         .answer-row .form-input {
             order: 3;
             width: 100%;
