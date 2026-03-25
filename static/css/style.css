@@ -142,8 +142,14 @@ a:hover {
         transform: translateX(0);
     }
 
-    .sidebar.closed {
+    .sidebar.closed,
+    html[style*="--sidebar-initial-state: closed"] .sidebar {
         transform: translateX(-100%);
+    }
+
+    .main-content.expanded,
+    html[style*="--sidebar-initial-state: closed"] .main-content {
+        margin-left: 0;
     }
 }
 

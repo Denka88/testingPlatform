@@ -55,22 +55,33 @@
 
     // Открытие меню
     function openSidebar() {
-        sidebar.classList.remove('closed');
-        sidebar.classList.add('open');
-        // Overlay показываем только на мобильных
-        if (!isDesktop()) {
+        // На десктопе просто убираем класс closed
+        if (isDesktop()) {
+            sidebar.classList.remove('closed');
+            mainContent.classList.remove('expanded');
+            // Сохраняем состояние после открытия
+            saveSidebarState();
+        } else {
+            // На мобильных добавляем класс open
+            sidebar.classList.add('open');
             sidebarOverlay.classList.add('active');
         }
-        mainContent.classList.remove('expanded');
     }
 
     // Закрытие меню
     function closeSidebar() {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
         if (isDesktop()) {
+            // На десктопе добавляем класс closed
             sidebar.classList.add('closed');
             mainContent.classList.add('expanded');
+        } else {
+            // На мобильных убираем класс open
+            sidebar.classList.remove('open');
+        }
+        sidebarOverlay.classList.remove('active');
+        // Сохраняем состояние после закрытия
+        if (isDesktop()) {
+            saveSidebarState();
         }
     }
 
@@ -99,21 +110,21 @@
             const savedState = localStorage.getItem('sidebarClosed');
             if (savedState === 'true') {
                 sidebar.classList.add('closed');
-                sidebar.classList.remove('open');
                 mainContent.classList.add('expanded');
-                sidebarOverlay.classList.remove('active');
             } else {
                 sidebar.classList.remove('closed');
-                sidebar.classList.add('open');
                 mainContent.classList.remove('expanded');
-                sidebarOverlay.classList.remove('active');
             }
+            // На десктопе overlay всегда скрыт
+            sidebarOverlay.classList.remove('active');
         } else {
             // На мобильных всегда начинаем с закрытым меню
-            sidebar.classList.remove('open', 'closed');
+            sidebar.classList.remove('open');
             mainContent.classList.remove('expanded');
             sidebarOverlay.classList.remove('active');
         }
+        // Убираем inline-стиль после применения состояния
+        document.documentElement.style.removeProperty('--sidebar-initial-state');
     }
 
     // Сохранение состояния меню
@@ -132,12 +143,7 @@
 
     if (sidebarClose) {
         sidebarClose.addEventListener('click', function() {
-            if (isDesktop()) {
-                closeSidebar();
-                saveSidebarState();
-            } else {
-                closeSidebar();
-            }
+            closeSidebar();
         });
     }
 

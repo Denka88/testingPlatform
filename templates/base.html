@@ -7,6 +7,18 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
+    <script>
+        // Применяем состояние меню до отрисовки (предотвращаем мерцание)
+        (function() {
+            var isDesktop = window.innerWidth >= 1024;
+            if (isDesktop) {
+                var savedState = localStorage.getItem('sidebarClosed');
+                if (savedState === 'true') {
+                    document.documentElement.style.setProperty('--sidebar-initial-state', 'closed');
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="app-container">
