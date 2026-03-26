@@ -71,7 +71,7 @@
                 {% if recent_results %}
                 <div class="results-list">
                     {% for result in recent_results %}
-                    <div class="result-item">
+                    <a href="{% url 'test_result_detail' result.id %}" class="result-item">
                         <div class="result-student">
                             <span class="result-name">{{ result.student.last_name }} {{ result.student.first_name }}</span>
                             <span class="result-test">{{ result.test.title }}</span>
@@ -79,7 +79,7 @@
                         <div class="result-grade grade-{{ result.grade }}">
                             {{ result.grade }}
                         </div>
-                    </div>
+                    </a>
                     {% endfor %}
                 </div>
                 {% else %}
@@ -148,6 +148,14 @@
         padding: 12px;
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .result-item:hover {
+        background-color: var(--bg-surface-tertiary);
+        transform: translateX(4px);
     }
     
     .result-student {

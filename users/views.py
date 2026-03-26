@@ -407,12 +407,13 @@ def profile_view(request):
         # Обновление данных пользователя
         request.user.first_name = request.POST.get('first_name', '')
         request.user.last_name = request.POST.get('last_name', '')
+        request.user.patronymic = request.POST.get('patronymic', '')
         request.user.email = request.POST.get('email', '')
         request.user.phone = request.POST.get('phone', '')
-        
+
         if request.POST.get('birth_date'):
             request.user.birth_date = request.POST.get('birth_date')
-        
+
         request.user.save()
         
         # Обновление профиля

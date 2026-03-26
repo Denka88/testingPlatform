@@ -384,17 +384,29 @@ def test_result_reset(request, result_id):
     if not request.user.is_teacher and not request.user.is_admin:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
+
     result = get_object_or_404(Result, id=result_id)
-    
+
     if request.user.is_teacher:
         if not Test.objects.filter(id=result.test.id, created_by=request.user).exists():
             messages.error(request, 'У вас нет доступа к этому результату')
             return redirect('dashboard')
-    
+
+    # Проверяем, есть ли уже сброшенный результат для этого студента и теста
+    existing_reset = Result.objects.filter(
+        test=result.test,
+        student=result.student,
+        is_reset=True
+    ).first()
+
+    if existing_reset:
+        # Если есть другой сброшенный результат (не текущий), удаляем его
+        if existing_reset.id != result.id:
+            existing_reset.delete()
+
     result.is_reset = True
     result.save()
-    
+
     messages.success(request, f'Результат сброшен. Студент {result.student.last_name} может пройти тест заново.')
     return redirect('teacher_results')
 

@@ -53,3 +53,25 @@ def divide(value, arg):
         return float(value) / float(arg)
     except (ValueError, TypeError):
         return 0
+
+
+@register.filter
+def format_duration(seconds):
+    """Форматирует длительность в секундах в строку 'X мин Y сек'"""
+    if seconds is None:
+        return ''
+    try:
+        seconds = int(seconds)
+        minutes = seconds // 60
+        secs = seconds % 60
+        if minutes > 0:
+            return f"{minutes} мин {secs} сек"
+        return f"{secs} сек"
+    except (ValueError, TypeError):
+        return ''
+
+
+@register.simple_tag
+def is_answer_selected(answer, selected_answers):
+    """Проверяет, выбран ли ответ студентом"""
+    return answer.id in [a.id for a in selected_answers.all()]

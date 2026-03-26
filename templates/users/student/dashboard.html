@@ -78,7 +78,7 @@
             {% if recent_results %}
             <div class="results-list-small">
                 {% for result in recent_results %}
-                <div class="result-item-small">
+                <a href="{% url 'test_result_detail' result.id %}" class="result-item-small">
                     <div class="result-info-small">
                         <span class="result-test-name">{{ result.test.title }}</span>
                         <span class="result-date">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
@@ -86,7 +86,7 @@
                     <div class="result-grade-small grade-{{ result.grade }}">
                         {{ result.grade }}
                     </div>
-                </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}
@@ -170,6 +170,14 @@
         padding: 14px 18px;
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .result-item-small:hover {
+        background-color: var(--bg-surface-tertiary);
+        transform: translateX(4px);
     }
     
     .result-info-small {

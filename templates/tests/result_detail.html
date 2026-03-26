@@ -23,11 +23,13 @@
                 <h1 class="result-title">{{ result.test.title }}</h1>
                 <p class="result-subject">{{ result.test.subject.name }}</p>
             </div>
+            {% if user.is_teacher or result.test.show_correct_answers %}
             <div class="result-grade-main grade-{{ result.grade }}">
                 {{ result.grade }}
             </div>
+            {% endif %}
         </div>
-        
+
         <div class="result-stats-grid">
             <div class="result-stat-card">
                 <span class="result-stat-label">Студент</span>
@@ -37,6 +39,13 @@
                 <span class="result-stat-label">Дата</span>
                 <span class="result-stat-value">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
             </div>
+            {% if result.duration_seconds %}
+            <div class="result-stat-card">
+                <span class="result-stat-label">Время прохождения</span>
+                <span class="result-stat-value">{{ result.duration_seconds|format_duration }}</span>
+            </div>
+            {% endif %}
+            {% if user.is_teacher or result.test.show_correct_answers %}
             <div class="result-stat-card">
                 <span class="result-stat-label">Правильно</span>
                 <span class="result-stat-value">{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
@@ -49,6 +58,13 @@
                     <span class="result-stat-value">—</span>
                 {% endif %}
             </div>
+            {% endif %}
+            {% if user.is_teacher %}
+            <div class="result-stat-card">
+                <span class="result-stat-label">Переключения вкладок</span>
+                <span class="result-stat-value">{{ result.tab_switches_count|default:0 }}</span>
+            </div>
+            {% endif %}
         </div>
     </div>
     
@@ -61,6 +77,7 @@
             <div class="answer-review">
                 <div class="answer-review-header">
                     <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
+                    {% if user.is_teacher or result.test.show_correct_answers %}
                     <span class="answer-review-status {% if student_answer.is_correct %}correct{% else %}incorrect{% endif %}">
                         {% if student_answer.is_correct %}
                             ✓ Правильно
@@ -68,8 +85,9 @@
                             ✗ Неправильно
                         {% endif %}
                     </span>
+                    {% endif %}
                 </div>
-                
+
                 <p class="answer-review-question">{{ student_answer.question.text }}</p>
 
                 <div class="answer-review-answers">
@@ -77,10 +95,16 @@
                         <span class="review-section-label">Ваш ответ:</span>
                         <div class="review-answers-list">
                             {% for answer in student_answer.answers.all %}
-                                {% if result.test.show_correct_answers %}
-                                    <span class="review-answer-tag {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
-                                        {{ answer.text }}
-                                    </span>
+                                {% if user.is_teacher or result.test.show_correct_answers %}
+                                    {% if answer.is_correct %}
+                                        <span class="review-answer-tag correct selected">
+                                            ✓ {{ answer.text }}
+                                        </span>
+                                    {% else %}
+                                        <span class="review-answer-tag incorrect selected">
+                                            ✗ {{ answer.text }}
+                                        </span>
+                                    {% endif %}
                                 {% else %}
                                     <span class="review-answer-tag">
                                         {{ answer.text }}
@@ -92,7 +116,7 @@
                         </div>
                     </div>
 
-                    {% if result.test.show_correct_answers %}
+                    {% if user.is_teacher or result.test.show_correct_answers %}
                     <div class="review-answers-section">
                         <span class="review-section-label">Правильный ответ:</span>
                         <div class="review-answers-list">
@@ -310,7 +334,12 @@
         color: var(--text-primary);
         border-color: var(--color-error);
     }
-    
+
+    .review-answer-tag.selected {
+        font-weight: 600;
+        border-width: 2px;
+    }
+
     .review-answer-tag.no-answer {
         background-color: var(--bg-surface-secondary);
         color: var(--text-muted);

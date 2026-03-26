@@ -20,6 +20,10 @@
             <span class="test-info-label">Предмет</span>
             <span class="test-info-value">{{ test.subject.name }}</span>
         </div>
+        <div class="test-info-item hidden-inline" id="gradeInfoItem">
+            <span class="test-info-label">Оценка</span>
+            <span class="test-info-value grade-badge grade-" id="gradeValue">-</span>
+        </div>
     </div>
     
     <form id="testForm" class="test-form" data-result-id="{{ result.id }}">
@@ -116,16 +120,20 @@
 <!-- Результат -->
 <div class="result-overlay hidden-inline" id="resultOverlay">
     <div class="result-card">
-        <div class="result-icon" id="resultIcon">✓</div>
+        <div class="result-icon" id="resultIcon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
         <h2 class="result-title">Тест завершен!</h2>
         <div class="result-stats">
             <div class="result-stat">
                 <span class="result-stat-value" id="correctCount">0</span>
-                <span class="result-stat-label">Правильных ответов</span>
+                <span class="result-stat-label">Правильных</span>
             </div>
             <div class="result-stat">
                 <span class="result-stat-value" id="totalCount">{{ questions.count }}</span>
-                <span class="result-stat-label">Всего вопросов</span>
+                <span class="result-stat-label">Всего</span>
             </div>
             <div class="result-stat">
                 <span class="result-stat-value grade-badge grade-" id="resultGrade">-</span>
@@ -178,6 +186,18 @@
         font-size: 1.25rem;
         font-weight: 700;
     }
+
+    .test-info-value.grade-badge {
+        min-width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+        padding: 0;
+    }
+
+    .test-info-item .grade-badge.grade-5 { color: #86efac; }
+    .test-info-item .grade-badge.grade-4 { color: #93c5fd; }
+    .test-info-item .grade-badge.grade-3 { color: #fcd34d; }
+    .test-info-item .grade-badge.grade-2 { color: #fca5a5; }
     
     .test-form {
         background-color: var(--bg-surface);
@@ -357,17 +377,31 @@
         align-items: center;
         justify-content: center;
         z-index: 1000;
+        opacity: 0;
+        animation: fadeInOverlay 0.3s ease forwards;
     }
-    
+
+    @keyframes fadeInOverlay {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
     .result-card {
         background-color: var(--bg-surface);
         border-radius: var(--border-radius-lg);
-        padding: 40px;
+        padding: 48px;
         text-align: center;
         max-width: 500px;
         width: 90%;
+        transform: scale(0.9);
+        animation: scaleIn 0.3s ease forwards 0.1s;
     }
-    
+
+    @keyframes scaleIn {
+        from { transform: scale(0.9); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
     .result-icon {
         width: 80px;
         height: 80px;
@@ -378,38 +412,66 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2.5rem;
-        font-weight: 700;
+        flex-shrink: 0;
     }
-    
+
+    .result-icon svg {
+        width: 40px;
+        height: 40px;
+    }
+
     .result-title {
         font-size: 1.5rem;
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 32px;
     }
-    
+
     .result-stats {
         display: flex;
         justify-content: space-around;
+        align-items: center;
         margin-bottom: 32px;
+        padding: 24px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
     }
-    
+
     .result-stat {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        align-items: center;
     }
-    
+
     .result-stat-value {
         font-size: 2rem;
         font-weight: 700;
         color: var(--color-primary);
+        line-height: 1;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
+
+    .result-stat .grade-badge {
+        color: inherit;
+        min-width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+
+    .result-stat .grade-5 { color: #22c55e; }
+    .result-stat .grade-4 { color: #3b82f6; }
+    .result-stat .grade-3 { color: #f59e0b; }
+    .result-stat .grade-2 { color: #ef4444; }
+
     .result-stat-label {
         font-size: 0.8125rem;
         color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 </style>
 {% endblock %}
@@ -585,16 +647,23 @@
         gradeEl.textContent = data.grade;
         gradeEl.className = 'result-stat-value grade-badge grade-' + data.grade;
 
+        // Показываем оценку в верхней панели
+        const gradeInfoItem = document.getElementById('gradeInfoItem');
+        const gradeValue = document.getElementById('gradeValue');
+        gradeInfoItem.classList.remove('hidden-inline');
+        gradeValue.textContent = data.grade;
+        gradeValue.className = 'test-info-value grade-badge grade-' + data.grade;
+
         const iconEl = document.getElementById('resultIcon');
         if (data.grade >= 4) {
-            iconEl.textContent = '✓';
             iconEl.style.backgroundColor = 'var(--color-success)';
+            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
         } else if (data.grade >= 3) {
-            iconEl.textContent = '!';
             iconEl.style.backgroundColor = 'var(--color-warning)';
+            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
         } else {
-            iconEl.textContent = '✗';
             iconEl.style.backgroundColor = 'var(--color-error)';
+            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
         }
 
         resultOverlay.classList.remove('hidden-inline');
