@@ -392,6 +392,28 @@
         border-color: var(--color-primary);
         box-shadow: 0 0 0 3px var(--color-primary-light);
     }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -400,20 +422,20 @@
 {% if user.is_teacher %}
 (function() {
     const gradeForm = document.getElementById('gradeForm');
-    
+
     gradeForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const formData = new FormData();
         const grade = this.querySelector('input[name="grade"]:checked');
-        
+
         if (!grade) {
             alert('Выберите оценку');
             return;
         }
-        
+
         formData.append('grade', grade.value);
-        
+
         fetch('{% url "test_result_update_grade" result.id %}', {
             method: 'POST',
             body: formData,
@@ -424,7 +446,14 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                location.reload();
+                // Обновляем отображение оценки на странице
+                const gradeElements = document.querySelectorAll('.grade-' + data.grade);
+                gradeElements.forEach(el => {
+                    el.textContent = data.grade;
+                });
+                
+                // Показываем уведомление
+                showNotification('Оценка сохранена', 'success');
             } else {
                 alert('Ошибка: ' + data.error);
             }
@@ -434,6 +463,38 @@
         });
     });
 })();
+
+function showNotification(message, type) {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = 'notification notification-' + type;
+    notification.textContent = message;
+    
+    // Добавляем стили
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        background-color: var(--color-success);
+        color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-lg);
+        z-index: 10000;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
 {% endif %}
 </script>
 {% endblock %}

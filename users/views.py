@@ -65,34 +65,22 @@ def dashboard_view(request):
 @login_required
 def teacher_dashboard(request):
     """Панель преподавателя"""
-    from groups.models import Subject, Group
     from tests.models import Test
     from results.models import Result
-    
+
     if not request.user.is_teacher:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
+
     user = request.user
-    
-    # Предметы преподавателя
-    subjects = user.subjects.all()
-    
-    # Группы, которые ведет преподаватель
-    groups = Group.objects.filter(subjects__teachers=user).distinct()
-    
-    # Тесты преподавателя
-    tests = Test.objects.filter(created_by=user).select_related('subject')
-    
+
     # Последние результаты по тестам преподавателя
+    tests = Test.objects.filter(created_by=user)
     recent_results = Result.objects.filter(
         test__in=tests
     ).select_related('student', 'test').order_by('-completed_at')[:10]
-    
+
     context = {
-        'subjects': subjects,
-        'groups': groups,
-        'tests': tests,
         'recent_results': recent_results,
     }
     return render(request, 'users/teacher/dashboard.html', context)
@@ -203,35 +191,188 @@ def teacher_subject_tests(request, subject_id):
 
 
 @login_required
-def teacher_results(request):
-    """Результаты тестов преподавателя"""
-    from tests.models import Test
-    from results.models import Result
-    
+def teacher_results_subjects(request):
+    """Предметы преподавателя для просмотра результатов"""
+    from groups.models import Subject
+
     if not request.user.is_teacher:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
-    test_id = request.GET.get('test')
-    group_id = request.GET.get('group')
-    
-    tests = Test.objects.filter(created_by=request.user)
-    
-    if test_id:
-        tests = tests.filter(id=test_id)
-    
-    results = Result.objects.filter(
-        test__in=tests
-    ).select_related('student', 'test', 'student__profile')
-    
-    if group_id:
-        results = results.filter(student__profile__group_id=group_id)
-    
+
+    # Поиск по предмету
+    search = request.GET.get('search', '')
+
+    # Получаем предметы преподавателя с количеством групп и тестов
+    subjects = Subject.objects.filter(
+        teachers=request.user
+    ).distinct().annotate(
+        groups_count=Count('groups', distinct=True),
+        tests_count=Count('tests', filter=Q(tests__created_by=request.user), distinct=True)
+    ).order_by('name')
+
+    # Поиск по названию предмета
+    if search:
+        subjects = subjects.filter(name__icontains=search)
+
     context = {
-        'results': results,
-        'tests': tests,
+        'subjects': subjects,
+        'search': search,
     }
-    return render(request, 'users/teacher/results.html', context)
+    return render(request, 'users/teacher/results_subjects.html', context)
+
+
+@login_required
+def teacher_results_groups(request, subject_id):
+    """Группы для выбранного предмета преподавателя"""
+    from groups.models import Subject, Group
+    from tests.models import Test
+
+    if not request.user.is_teacher:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
+
+    # Поиск по группе
+    search = request.GET.get('search', '')
+
+    # Получаем группы, связанные с этим предметом
+    groups = Group.objects.filter(
+        subjects=subject
+    ).distinct().annotate(
+        students_count=Count('students', distinct=True)
+    ).order_by('name')
+
+    # Поиск по названию группы
+    if search:
+        groups = groups.filter(name__icontains=search)
+
+    context = {
+        'subject': subject,
+        'groups': groups,
+        'search': search,
+    }
+    return render(request, 'users/teacher/results_groups.html', context)
+
+
+@login_required
+def teacher_results_tests(request, subject_id, group_id):
+    """Тесты для выбранной группы и предмета"""
+    from groups.models import Subject, Group
+    from tests.models import Test
+
+    if not request.user.is_teacher:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
+    group = get_object_or_404(Group, id=group_id, subjects=subject)
+
+    # Поиск по тесту
+    search = request.GET.get('search', '')
+
+    # Фильтр по статусу
+    status_filter = request.GET.get('status', '')
+
+    # Получаем тесты, прикрепленные к этой группе
+    tests = Test.objects.filter(
+        subject=subject,
+        created_by=request.user,
+        groups=group
+    ).select_related('subject').prefetch_related('groups')
+
+    # Поиск по названию теста
+    if search:
+        tests = tests.filter(title__icontains=search)
+
+    # Фильтр по статусу
+    if status_filter == 'published':
+        tests = tests.filter(is_published=True)
+    elif status_filter == 'draft':
+        tests = tests.filter(is_published=False)
+
+    context = {
+        'subject': subject,
+        'group': group,
+        'tests': tests,
+        'search': search,
+        'status_filter': status_filter,
+    }
+    return render(request, 'users/teacher/results_tests.html', context)
+
+
+@login_required
+def teacher_results_students(request, subject_id, group_id, test_id):
+    """Результаты студентов группы по тесту"""
+    from groups.models import Subject, Group
+    from tests.models import Test
+    from results.models import Result
+
+    if not request.user.is_teacher:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
+    group = get_object_or_404(Group, id=group_id, subjects=subject)
+    test = get_object_or_404(Test, id=test_id, subject=subject, created_by=request.user, groups=group)
+
+    # Поиск по студенту
+    search = request.GET.get('search', '')
+
+    # Фильтр по оценке
+    grade_filter = request.GET.get('grade', '')
+
+    # Получаем всех студентов группы
+    students = User.objects.filter(
+        profile__group=group,
+        role='student'
+    ).select_related('profile')
+
+    # Поиск по фамилии/имени студента
+    if search:
+        students = students.filter(
+            Q(last_name__icontains=search) |
+            Q(first_name__icontains=search)
+        )
+
+    # Получаем результаты студентов по этому тесту
+    results = Result.objects.filter(
+        test=test,
+        student__profile__group=group
+    ).select_related('student', 'student__profile')
+
+    # Создаем словарь результатов по ID студента
+    results_dict = {result.student.id: result for result in results}
+
+    # Фильтр по оценке
+    if grade_filter:
+        if grade_filter == 'no_grade':
+            students = students.filter(id__in=[r.student_id for r in results if not r.grade])
+            results_dict = {k: v for k, v in results_dict.items() if not v.grade}
+        else:
+            students = students.filter(id__in=[r.student_id for r in results if r.grade and str(r.grade) == grade_filter])
+            results_dict = {k: v for k, v in results_dict.items() if v.grade and str(v.grade) == grade_filter}
+
+    # Количество не прошедших тест
+    not_passed_count = students.count() - len(results_dict)
+
+    context = {
+        'subject': subject,
+        'group': group,
+        'test': test,
+        'students': students,
+        'results_dict': results_dict,
+        'search': search,
+        'grade_filter': grade_filter,
+        'not_passed_count': not_passed_count,
+    }
+    return render(request, 'users/teacher/results_students.html', context)
+
+
+@login_required
+def teacher_results(request):
+    """Результаты тестов преподавателя - перенаправление на новую структуру"""
+    return redirect('teacher_results_subjects')
 
 
 # ==================== Student Views ====================

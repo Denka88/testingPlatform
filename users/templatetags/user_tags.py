@@ -36,6 +36,14 @@ def get_item(dictionary, key):
 
 
 @register.filter
+def dict_lookup(dictionary, key):
+    """Получение элемента из словаря по ключу (альтернативное имя)"""
+    if dictionary is None:
+        return None
+    return dictionary.get(key)
+
+
+@register.filter
 def multiply(value, arg):
     """Умножение двух значений"""
     try:

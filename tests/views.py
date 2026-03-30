@@ -337,10 +337,13 @@ def test_submit(request, result_id):
 def test_result_detail(request, result_id):
     """Просмотр результатов теста"""
     # Получаем результат с prefetch для оптимизации
-    result = Result.objects.prefetch_related(
-        'student_answers__question__answers',
-        'student_answers__answers'
-    ).get(id=result_id)
+    result = get_object_or_404(
+        Result.objects.prefetch_related(
+            'student_answers__question__answers',
+            'student_answers__answers'
+        ),
+        id=result_id
+    )
 
     # Проверка прав
     if request.user.is_student and result.student != request.user:

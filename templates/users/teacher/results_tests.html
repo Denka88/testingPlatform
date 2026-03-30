@@ -1,49 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ subject.name }} - Тесты{% endblock %}
+{% block title %}Результаты - Тесты - {{ group.name }}{% endblock %}
 
-{% block topbar_title %}{{ subject.name }}{% endblock %}
+{% block topbar_title %}Результаты тестов{% endblock %}
 
 {% block content %}
-<div class="tests-container">
-    <!-- Заголовок и кнопка -->
-    <div class="tests-header mb-3">
-        <div class="tests-breadcrumb">
-            <a href="{% url 'teacher_tests' %}" class="breadcrumb-link">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Тесты
-            </a>
-            <span class="breadcrumb-sep">/</span>
-            <span class="breadcrumb-current">{{ subject.name }}</span>
-        </div>
-        <a href="{% url 'teacher_test_create' %}" class="btn btn-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
+<div class="results-container">
+    <!-- Хлебные крошки -->
+    <div class="breadcrumb-nav mb-3">
+        <a href="{% url 'teacher_dashboard' %}" class="breadcrumb-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
-            Создать тест
+            Главная
         </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_subjects' %}" class="breadcrumb-link">
+            Результаты
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_groups' subject.id %}" class="breadcrumb-link">
+            {{ subject.name }}
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">{{ group.name }}</span>
     </div>
-    
+
     <!-- Поиск и фильтры -->
     <div class="filters-bar card mb-3">
         <form method="get" class="filters-form">
             <div class="filters-row">
                 <div class="filter-group">
                     <label class="filter-label">Поиск</label>
-                    <input 
-                        type="text" 
-                        name="search" 
-                        class="form-input" 
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-input"
                         placeholder="Название теста..."
                         value="{{ search }}"
                     >
                 </div>
-                
+
                 <div class="filter-group">
                     <label class="filter-label">Статус</label>
                     <select name="status" class="form-select">
@@ -52,15 +50,15 @@
                         <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Не опубликованы</option>
                     </select>
                 </div>
-                
+
                 <div class="filter-actions">
                     <button type="submit" class="btn btn-primary btn-sm">Применить</button>
-                    <a href="{% url 'teacher_subject_tests' subject.id %}" class="btn btn-secondary btn-sm">Сбросить</a>
+                    <a href="{% url 'teacher_results_tests' subject.id group.id %}" class="btn btn-secondary btn-sm">Сбросить</a>
                 </div>
             </div>
         </form>
     </div>
-    
+
     <!-- Список тестов -->
     {% if tests %}
         <div class="tests-list">
@@ -78,12 +76,12 @@
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="test-card-body">
                     {% if test.description %}
                         <p class="test-description">{{ test.description|truncatewords:15 }}</p>
                     {% endif %}
-                    
+
                     <div class="test-card-meta">
                         <div class="test-meta-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,34 +97,20 @@
                             </svg>
                             <span>{{ test.questions.count }} вопросов</span>
                         </div>
-                        <div class="test-meta-item">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                            </svg>
-                            <span>{{ test.groups.count }} групп</span>
-                        </div>
-                    </div>
-                    
-                    <div class="test-card-groups">
-                        {% for group in test.groups.all %}
-                            <span class="test-group-tag">{{ group.name }}</span>
-                        {% endfor %}
                     </div>
                 </div>
-                
+
                 <div class="test-card-footer">
                     <div class="test-card-actions">
+                        <a href="{% url 'teacher_results_students' subject.id group.id test.id %}" class="btn btn-primary btn-sm">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            Результаты
+                        </a>
                         <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary btn-sm">
                             Редактировать
-                        </a>
-                        <a href="{% url 'teacher_test_duplicate' test.id %}" class="btn btn-secondary btn-sm" 
-                           onclick="return confirmAction('Создать копию этого теста?')">
-                            Дублировать
-                        </a>
-                        <a href="{% url 'teacher_test_delete' test.id %}" class="btn btn-danger btn-sm"
-                           onclick="return confirmAction('Вы уверены, что хотите удалить этот тест?')">
-                            Удалить
                         </a>
                     </div>
                     <span class="test-date">{{ test.updated_at|date:"d.m.Y" }}</span>
@@ -142,14 +126,9 @@
                 {% if search or status_filter %}
                     Попробуйте изменить параметры поиска или фильтрации
                 {% else %}
-                    Создайте первый тест для этого предмета
+                    Для этой группы нет тестов
                 {% endif %}
             </p>
-            {% if not search and not status_filter %}
-                <a href="{% url 'teacher_test_create' %}" class="btn btn-primary">
-                    Создать тест
-                </a>
-            {% endif %}
         </div>
     {% endif %}
 </div>
@@ -157,6 +136,41 @@
 
 {% block extra_css %}
 <style>
+    .results-container {
+        width: 100%;
+    }
+
+    .breadcrumb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-link {
+        color: var(--color-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-link:hover {
+        color: var(--color-primary-hover);
+    }
+
+    .breadcrumb-sep {
+        color: var(--text-muted);
+    }
+
+    .breadcrumb-current {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
     .filters-bar {
         padding: 20px;
     }
@@ -256,7 +270,6 @@
         display: flex;
         gap: 20px;
         flex-wrap: wrap;
-        margin-bottom: 16px;
     }
 
     .test-meta-item {
@@ -265,21 +278,6 @@
         gap: 6px;
         font-size: 0.875rem;
         color: var(--text-secondary);
-    }
-
-    .test-card-groups {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .test-group-tag {
-        padding: 4px 10px;
-        background-color: var(--color-primary-light);
-        color: var(--color-primary);
-        border-radius: 9999px;
-        font-size: 0.8125rem;
-        font-weight: 500;
     }
 
     .test-card-footer {
@@ -302,10 +300,8 @@
     }
 
     @media (max-width: 600px) {
-        .tests-header {
-            flex-direction: column;
-            gap: 16px;
-            align-items: flex-start;
+        .breadcrumb-nav {
+            gap: 4px;
         }
 
         .test-card-footer {

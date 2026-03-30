@@ -19,7 +19,12 @@ urlpatterns = [
     path('teacher/subjects/', views.teacher_subjects, name='teacher_subjects'),
     path('teacher/tests/', views.teacher_tests, name='teacher_tests'),
     path('teacher/tests/<int:subject_id>/', views.teacher_subject_tests, name='teacher_subject_tests'),
+    # Результаты - новая структура
     path('teacher/results/', views.teacher_results, name='teacher_results'),
+    path('teacher/results/subjects/', views.teacher_results_subjects, name='teacher_results_subjects'),
+    path('teacher/results/subjects/<int:subject_id>/groups/', views.teacher_results_groups, name='teacher_results_groups'),
+    path('teacher/results/subjects/<int:subject_id>/groups/<int:group_id>/tests/', views.teacher_results_tests, name='teacher_results_tests'),
+    path('teacher/results/subjects/<int:subject_id>/groups/<int:group_id>/tests/<int:test_id>/students/', views.teacher_results_students, name='teacher_results_students'),
 
     # Student
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),

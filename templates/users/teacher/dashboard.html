@@ -6,26 +6,6 @@
 
 {% block content %}
 <div class="dashboard-container">
-    <!-- Статистика -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <span class="stat-label">Предметов</span>
-            <span class="stat-value">{{ subjects|length }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Групп</span>
-            <span class="stat-value">{{ groups|length }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Тестов</span>
-            <span class="stat-value">{{ tests.count }}</span>
-        </div>
-        <div class="stat-card">
-            <span class="stat-label">Результатов</span>
-            <span class="stat-value">{{ recent_results.count }}</span>
-        </div>
-    </div>
-    
     <!-- Быстрые действия -->
     <div class="dashboard-grid">
         <div class="card">
@@ -98,24 +78,24 @@
     .dashboard-container {
         width: 100%;
     }
-    
+
     .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        display: flex;
+        flex-direction: column;
         gap: 24px;
     }
-    
+
     .quick-actions {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
     }
-    
+
     .quick-action-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
+        gap: 16px;
+        padding: 18px 20px;
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
         color: var(--text-primary);
@@ -187,7 +167,7 @@
 
     @media (max-width: 768px) {
         .dashboard-grid {
-            grid-template-columns: 1fr;
+            gap: 16px;
         }
     }
 </style>

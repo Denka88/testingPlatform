@@ -1,0 +1,426 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}Результаты - {{ test.title }}{% endblock %}
+
+{% block topbar_title %}Результаты тестов{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <!-- Хлебные крошки -->
+    <div class="breadcrumb-nav mb-3">
+        <a href="{% url 'teacher_dashboard' %}" class="breadcrumb-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Главная
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_subjects' %}" class="breadcrumb-link">
+            Результаты
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_groups' subject.id %}" class="breadcrumb-link">
+            {{ subject.name }}
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_tests' subject.id group.id %}" class="breadcrumb-link">
+            {{ group.name }}
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">{{ test.title }}</span>
+    </div>
+
+    <!-- Заголовок теста -->
+    <div class="test-info-card card mb-3">
+        <div class="test-info-header">
+            <h2 class="test-info-title">{{ test.title }}</h2>
+            <div class="test-info-badges">
+                {% if test.is_published %}
+                    <span class="badge badge-success">Опубликован</span>
+                {% else %}
+                    <span class="badge badge-draft">Не опубликован</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="test-info-meta">
+            <div class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>{{ test.time_limit }} мин</span>
+            </div>
+            <div class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span>{{ test.questions.count }} вопросов</span>
+            </div>
+            <div class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+                <span>{{ group.name }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Поиск и фильтры -->
+    <div class="filters-bar card mb-3">
+        <form method="get" class="filters-form">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label class="filter-label">Поиск студента</label>
+                    <input
+                        type="text"
+                        name="search"
+                        class="form-input"
+                        placeholder="Фамилия или имя..."
+                        value="{{ search }}"
+                    >
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">Оценка</label>
+                    <select name="grade" class="form-select">
+                        <option value="">Все</option>
+                        <option value="5" {% if grade_filter == '5' %}selected{% endif %}>5 (Отлично)</option>
+                        <option value="4" {% if grade_filter == '4' %}selected{% endif %}>4 (Хорошо)</option>
+                        <option value="3" {% if grade_filter == '3' %}selected{% endif %}>3 (Удовлетворительно)</option>
+                        <option value="2" {% if grade_filter == '2' %}selected{% endif %}>2 (Неудовлетворительно)</option>
+                        <option value="no_grade" {% if grade_filter == 'no_grade' %}selected{% endif %}>Без оценки</option>
+                    </select>
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary btn-sm">Применить</button>
+                    <a href="{% url 'teacher_results_students' subject.id group.id test.id %}" class="btn btn-secondary btn-sm">Сбросить</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Таблица результатов -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Студент</th>
+                            <th>Дата прохождения</th>
+                            <th>Правильные ответы</th>
+                            <th>Оценка</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% with result=results_dict|dict_lookup:student.id %}
+                        <tr class="{% if not result %}row-no-result{% endif %}">
+                            <td>
+                                <div class="student-name">
+                                    {{ student.last_name }} {{ student.first_name }}
+                                    {% if student.patronymic %}{{ student.patronymic }}{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if result and result.completed_at %}
+                                    <span class="result-date">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
+                                {% elif result %}
+                                    <span class="badge badge-draft">В процессе</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result %}
+                                    <span class="answers-count">
+                                        {{ result.correct_answers_count }} / {{ result.total_questions }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result and result.grade %}
+                                    <span class="grade-badge grade-{{ result.grade }}">
+                                        {{ result.grade }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result %}
+                                    <div class="actions-cell">
+                                        <a href="{% url 'test_result_detail' result.id %}"
+                                           class="btn btn-secondary btn-sm">
+                                            Просмотр
+                                        </a>
+                                        {% if not result.is_reset %}
+                                        <a href="{% url 'test_result_reset' result.id %}"
+                                           class="btn btn-secondary btn-sm"
+                                           onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
+                                            Сбросить
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <div class="empty-state">
+                                    <p class="empty-state-text">В группе нет студентов</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-summary mt-3">
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="stat-label">Всего студентов</span>
+                <span class="stat-value">{{ students.count }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Прошли тест</span>
+                <span class="stat-value">{{ results_dict|length }}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Не прошли</span>
+                <span class="stat-value">{{ not_passed_count }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-container {
+        width: 100%;
+    }
+
+    .breadcrumb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-link {
+        color: var(--color-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-link:hover {
+        color: var(--color-primary-hover);
+    }
+
+    .breadcrumb-sep {
+        color: var(--text-muted);
+    }
+
+    .breadcrumb-current {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .test-info-card {
+        padding: 20px;
+    }
+
+    .test-info-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .test-info-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .test-info-badges {
+        display: flex;
+        gap: 8px;
+    }
+
+    .test-info-meta {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .filters-bar {
+        padding: 20px;
+    }
+
+    .filters-form {
+        width: 100%;
+    }
+
+    .filters-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .filter-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+        padding-bottom: 10px;
+    }
+
+    .actions-cell {
+        display: flex;
+        gap: 8px;
+    }
+
+    .student-name {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .result-date {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .answers-count {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .text-muted {
+        color: var(--text-muted);
+    }
+
+    .row-no-result {
+        background-color: var(--bg-surface-secondary);
+    }
+
+    .row-no-result:hover td {
+        background-color: var(--bg-surface-tertiary);
+    }
+
+    .stats-summary {
+        display: flex;
+        gap: 16px;
+    }
+
+    .stats-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .stat-item {
+        flex: 1;
+        min-width: 150px;
+        padding: 16px 20px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    @media (max-width: 600px) {
+        .breadcrumb-nav {
+            gap: 4px;
+        }
+
+        .test-info-header {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .filters-row {
+            flex-direction: column;
+        }
+
+        .filter-group {
+            min-width: 100%;
+        }
+
+        .stats-row {
+            flex-direction: column;
+        }
+
+        .stat-item {
+            min-width: 100%;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            min-width: 600px;
+        }
+    }
+</style>
+{% endblock %}
