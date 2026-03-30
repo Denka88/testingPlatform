@@ -38,6 +38,12 @@ class Subject(models.Model):
         blank=True,
         verbose_name='Описание'
     )
+    image = models.ImageField(
+        upload_to='subject_images/',
+        null=True,
+        blank=True,
+        verbose_name='Изображение предмета'
+    )
     teachers = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='subjects',

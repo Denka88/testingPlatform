@@ -31,10 +31,10 @@ class SubjectAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     filter_horizontal = ('teachers', 'groups')
     ordering = ('name',)
-    
+
     fieldsets = (
         ('Информация о предмете', {
-            'fields': ('name', 'description')
+            'fields': ('name', 'description', 'image')
         }),
         ('Преподаватели', {
             'fields': ('teachers',)
