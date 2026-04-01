@@ -162,3 +162,114 @@
     }
 </style>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarInput = document.getElementById('avatar');
+    const avatarContainer = document.querySelector('.profile-avatar');
+    const avatarImg = avatarContainer ? avatarContainer.querySelector('img') : null;
+    const avatarPlaceholder = avatarContainer ? avatarContainer.querySelector('.avatar-placeholder') : null;
+    
+    // Сохраняем оригинальный аватар
+    let originalAvatarSrc = avatarImg ? avatarImg.src : null;
+    let hasOriginalAvatar = avatarImg !== null;
+    
+    if (avatarInput && avatarContainer) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    // Если есть img - обновляем его, иначе создаём
+                    if (avatarImg) {
+                        avatarImg.src = e.target.result;
+                    } else {
+                        // Создаём новый img элемент
+                        const newImg = document.createElement('img');
+                        newImg.src = e.target.result;
+                        newImg.alt = 'Аватар';
+                        
+                        // Если есть placeholder - заменяем его
+                        if (avatarPlaceholder) {
+                            avatarPlaceholder.replaceWith(newImg);
+                        } else {
+                            avatarContainer.appendChild(newImg);
+                        }
+                        avatarImg = newImg;
+                    }
+                    
+                    // Показываем кнопку отмены
+                    showCancelButton();
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Функция показа кнопки отмены
+        function showCancelButton() {
+            let cancelBtn = document.getElementById('cancelAvatarBtn');
+            if (!cancelBtn) {
+                cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.id = 'cancelAvatarBtn';
+                cancelBtn.className = 'btn btn-secondary btn-sm';
+                cancelBtn.style.marginTop = '8px';
+                cancelBtn.textContent = 'Отменить';
+                cancelBtn.style.display = 'none';
+                
+                const uploadDiv = document.querySelector('.profile-avatar-upload');
+                if (uploadDiv) {
+                    uploadDiv.appendChild(cancelBtn);
+                }
+                
+                cancelBtn.addEventListener('click', function() {
+                    // Сбрасываем input
+                    avatarInput.value = '';
+                    
+                    // Возвращаем оригинальный аватар или placeholder
+                    const existingImg = avatarContainer.querySelector('img');
+                    if (existingImg) {
+                        if (hasOriginalAvatar) {
+                            existingImg.src = originalAvatarSrc;
+                        } else {
+                            existingImg.remove();
+                        }
+                    }
+                    
+                    // Если не было оригинального аватара - возвращаем placeholder
+                    if (!hasOriginalAvatar && !avatarContainer.querySelector('.avatar-placeholder')) {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'avatar-placeholder';
+                        const firstName = document.getElementById('first_name').value || '';
+                        const lastName = document.getElementById('last_name').value || '';
+                        placeholder.textContent = (firstName.charAt(0) || '') + (lastName.charAt(0) || '');
+                        avatarContainer.appendChild(placeholder);
+                    }
+                    
+                    // Скрываем кнопку отмены
+                    cancelBtn.style.display = 'none';
+                });
+            }
+            cancelBtn.style.display = 'inline-block';
+        }
+    }
+    
+    // Обработка формы перед отправкой
+    const form = document.querySelector('.profile-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const file = avatarInput.files[0];
+            if (file && file.size > 5 * 1024 * 1024) { // 5MB
+                e.preventDefault();
+                alert('Размер файла не должен превышать 5MB');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -59,17 +59,11 @@ class Result(models.Model):
         verbose_name='Переключения вкладок',
         help_text='Количество раз, когда страница становилась неактивной'
     )
-    is_reset = models.BooleanField(
-        default=False,
-        verbose_name='Сброшен',
-        help_text='Если отмечено, студент может пройти тест заново'
-    )
 
     class Meta:
         verbose_name = 'Результат'
         verbose_name_plural = 'Результаты'
         ordering = ['-completed_at', '-started_at']
-        unique_together = ['test', 'student', 'is_reset']
 
     def __str__(self):
         return f"{self.student.last_name} {self.student.first_name} - {self.test.title} ({self.grade or 'Не проверено'})"

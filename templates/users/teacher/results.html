@@ -74,17 +74,15 @@
                             </td>
                             <td>
                                 <div class="actions-cell">
-                                    <a href="{% url 'test_result_detail' result.id %}" 
+                                    <a href="{% url 'test_result_detail' result.id %}"
                                        class="btn btn-secondary btn-sm">
                                         Просмотр
                                     </a>
-                                    {% if not result.is_reset %}
-                                    <a href="{% url 'test_result_reset' result.id %}" 
+                                    <a href="{% url 'test_result_reset' result.id %}"
                                        class="btn btn-secondary btn-sm"
                                        onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
                                         Сбросить
                                     </a>
-                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

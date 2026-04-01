@@ -405,7 +405,6 @@ def student_dashboard(request):
     # Получаем ID пройденных тестов
     completed_tests = Result.objects.filter(
         student=user,
-        is_reset=False,
         completed_at__isnull=False
     ).values_list('test_id', flat=True)
 
@@ -417,8 +416,7 @@ def student_dashboard(request):
 
     # Результаты студента
     student_results = Result.objects.filter(
-        student=user,
-        is_reset=False
+        student=user
     ).select_related('test').order_by('-completed_at')[:10]
 
     context = {
@@ -492,7 +490,6 @@ def student_subject_tests(request, subject_id):
     # Получаем все пройденные тесты студентом
     completed_results = Result.objects.filter(
         student=user,
-        is_reset=False,
         completed_at__isnull=False
     ).select_related('test')
 
@@ -529,8 +526,7 @@ def student_results(request):
         return redirect('dashboard')
     
     results = Result.objects.filter(
-        student=request.user,
-        is_reset=False
+        student=request.user
     ).select_related('test__subject').order_by('-completed_at')
     
     context = {'results': results}

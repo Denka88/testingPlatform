@@ -129,19 +129,19 @@ def teacher_question_create(request, test_id):
     if not request.user.is_teacher and not request.user.is_admin:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
+
     test = get_object_or_404(Test, id=test_id)
-    
+
     if request.user.is_teacher and test.created_by != request.user:
         messages.error(request, 'У вас нет доступа к этому тесту')
         return redirect('teacher_tests')
-    
+
     if request.method == 'POST':
         text = request.POST.get('text')
         question_type = request.POST.get('question_type')
         code_snippet = request.POST.get('code_snippet', '')
         order = int(request.POST.get('order', 0))
-        
+
         question = Question.objects.create(
             test=test,
             text=text,
@@ -149,16 +149,16 @@ def teacher_question_create(request, test_id):
             code_snippet=code_snippet,
             order=order
         )
-        
+
         # Сохраняем изображение
         if request.FILES.get('image'):
             question.image = request.FILES.get('image')
             question.save()
-        
+
         # Сохраняем ответы
         answer_texts = request.POST.getlist('answer_text[]')
         answer_correct = request.POST.getlist('answer_correct[]')
-        
+
         for i, answer_text in enumerate(answer_texts):
             if answer_text.strip():
                 Answer.objects.create(
@@ -167,11 +167,80 @@ def teacher_question_create(request, test_id):
                     is_correct=i in [int(x) for x in answer_correct],
                     order=i
                 )
-        
+
         messages.success(request, 'Вопрос добавлен')
         return redirect('teacher_test_edit', test_id=test_id)
-    
+
     context = {'test': test}
+    return render(request, 'tests/teacher/question_form.html', context)
+
+
+@login_required
+def teacher_question_edit(request, question_id):
+    """Редактирование вопроса"""
+    if not request.user.is_teacher and not request.user.is_admin:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    question = get_object_or_404(Question, id=question_id)
+    test = question.test
+
+    if request.user.is_teacher and test.created_by != request.user:
+        messages.error(request, 'У вас нет доступа к этому вопросу')
+        return redirect('teacher_tests')
+
+    if request.method == 'POST':
+        question.text = request.POST.get('text')
+        question.question_type = request.POST.get('question_type')
+        question.code_snippet = request.POST.get('code_snippet', '')
+        question.order = int(request.POST.get('order', 0))
+
+        # Сохраняем изображение
+        if request.FILES.get('image'):
+            question.image = request.FILES.get('image')
+
+        question.save()
+
+        # Получаем текущие ответы
+        answer_texts = request.POST.getlist('answer_text[]')
+        answer_correct_indices = request.POST.getlist('answer_correct[]')
+        answer_ids = request.POST.getlist('answer_id[]')
+
+        # Преобразуем индексы правильных ответов в integers
+        correct_indices = [int(x) for x in answer_correct_indices]
+
+        # Удаляем ответы, которые были удалены из формы
+        current_answer_ids = [int(x) for x in answer_ids if x]
+        for answer in question.answers.all():
+            if answer.id not in current_answer_ids:
+                answer.delete()
+
+        # Обновляем или создаём ответы
+        for i, answer_text in enumerate(answer_texts):
+            if answer_text.strip():
+                answer_id = answer_ids[i] if i < len(answer_ids) else None
+                is_correct = i in correct_indices
+                
+                if answer_id and answer_id.isdigit():
+                    # Обновляем существующий
+                    answer = get_object_or_404(Answer, id=int(answer_id), question=question)
+                    answer.text = answer_text
+                    answer.is_correct = is_correct
+                    answer.order = i
+                    answer.save()
+                else:
+                    # Создаём новый
+                    Answer.objects.create(
+                        question=question,
+                        text=answer_text,
+                        is_correct=is_correct,
+                        order=i
+                    )
+
+        messages.success(request, 'Вопрос обновлен')
+        return redirect('teacher_test_edit', test_id=test.id)
+
+    context = {'test': test, 'question': question}
     return render(request, 'tests/teacher/question_form.html', context)
 
 
@@ -219,7 +288,6 @@ def test_take(request, test_id):
     completed_result = Result.objects.filter(
         student=request.user,
         test=test,
-        is_reset=False,
         completed_at__isnull=False
     ).first()
 
@@ -231,7 +299,6 @@ def test_take(request, test_id):
     existing_result = Result.objects.filter(
         student=request.user,
         test=test,
-        is_reset=False,
         completed_at__isnull=True
     ).first()
 
@@ -395,22 +462,14 @@ def test_result_reset(request, result_id):
             messages.error(request, 'У вас нет доступа к этому результату')
             return redirect('dashboard')
 
-    # Проверяем, есть ли уже сброшенный результат для этого студента и теста
-    existing_reset = Result.objects.filter(
-        test=result.test,
-        student=result.student,
-        is_reset=True
-    ).first()
+    # Сохраняем данные для сообщения
+    student_name = result.student.last_name
+    test_title = result.test.title
 
-    if existing_reset:
-        # Если есть другой сброшенный результат (не текущий), удаляем его
-        if existing_reset.id != result.id:
-            existing_reset.delete()
+    # Полностью удаляем результат (StudentAnswer удалятся по CASCADE)
+    result.delete()
 
-    result.is_reset = True
-    result.save()
-
-    messages.success(request, f'Результат сброшен. Студент {result.student.last_name} может пройти тест заново.')
+    messages.success(request, f'Результат студента {student_name} за тест "{test_title}" сброшен. Студент может пройти тест заново.')
     return redirect('teacher_results')
 
 

@@ -162,13 +162,11 @@
                                            class="btn btn-secondary btn-sm">
                                             Просмотр
                                         </a>
-                                        {% if not result.is_reset %}
                                         <a href="{% url 'test_result_reset' result.id %}"
                                            class="btn btn-secondary btn-sm"
                                            onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
                                             Сбросить
                                         </a>
-                                        {% endif %}
                                     </div>
                                 {% else %}
                                     <span class="text-muted">—</span>

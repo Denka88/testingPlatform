@@ -1,130 +1,157 @@
 {% extends 'base.html' %}
 
-{% block title %}Добавить вопрос{% endblock %}
+{% block title %}{% if question %}Редактировать вопрос{% else %}Добавить вопрос{% endif %}{% endblock %}
 
-{% block topbar_title %}Добавить вопрос{% endblock %}
+{% block topbar_title %}{% if question %}Редактировать вопрос{% else %}Добавить вопрос{% endif %}{% endblock %}
 
 {% block content %}
 <div class="form-container">
     <div class="card">
         <div class="card-header">
-            <h2 class="card-title">Новый вопрос</h2>
+            <h2 class="card-title">{% if question %}Редактирование вопроса{% else %}Новый вопрос{% endif %}</h2>
             <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary btn-sm">Назад</a>
         </div>
         <div class="card-body">
             <form method="post" enctype="multipart/form-data" class="question-form" id="questionForm">
                 {% csrf_token %}
-                
+
                 <div class="form-group">
                     <label class="form-label" for="text">Текст вопроса *</label>
-                    <textarea 
-                        class="form-textarea" 
-                        id="text" 
-                        name="text" 
+                    <textarea
+                        class="form-textarea"
+                        id="text"
+                        name="text"
                         rows="4"
                         required
                         placeholder="Введите текст вопроса"
-                    ></textarea>
+                    >{{ question.text|default:'' }}</textarea>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="question_type">Тип вопроса *</label>
                         <select class="form-select" id="question_type" name="question_type" required>
-                            <option value="single">Один правильный ответ</option>
-                            <option value="multiple">Несколько правильных ответов</option>
+                            <option value="single" {% if question.question_type == 'single' %}selected{% endif %}>Один правильный ответ</option>
+                            <option value="multiple" {% if question.question_type == 'multiple' %}selected{% endif %}>Несколько правильных ответов</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label class="form-label" for="order">Порядок отображения</label>
-                        <input 
-                            type="number" 
-                            class="form-input" 
-                            id="order" 
-                            name="order" 
-                            value="{{ test.questions.count|add:1 }}"
+                        <input
+                            type="number"
+                            class="form-input"
+                            id="order"
+                            name="order"
+                            value="{% if question %}{{ question.order }}{% else %}{{ test.questions.count|add:1 }}{% endif %}"
                             min="0"
                         >
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="code_snippet">Фрагмент кода (опционально)</label>
-                    <textarea 
-                        class="form-textarea" 
-                        id="code_snippet" 
-                        name="code_snippet" 
+                    <textarea
+                        class="form-textarea"
+                        id="code_snippet"
+                        name="code_snippet"
                         rows="6"
                         placeholder="// Вставьте код вопроса здесь"
-                    ></textarea>
+                    >{{ question.code_snippet|default:'' }}</textarea>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Изображение к вопросу (опционально)</label>
+                    {% if question.image %}
+                        <div class="mb-2">
+                            <img src="{{ question.image.url }}" alt="Текущее изображение" style="max-width: 300px; border-radius: 8px;">
+                        </div>
+                    {% endif %}
                     <input type="file" class="form-input" id="image" name="image" accept="image/*">
                 </div>
-                
+
                 <!-- Ответы -->
                 <div class="answers-section">
                     <h3 class="answers-title">Варианты ответов</h3>
                     <div id="answersContainer">
-                        <div class="answer-row">
-                            <div class="answer-check">
-                                <input type="radio" name="answer_correct" value="0" class="form-check-input" required>
+                        {% if question %}
+                            {% for answer in question.answers.all %}
+                            <div class="answer-row">
+                                <div class="answer-check">
+                                    <input type="{% if question.question_type == 'multiple' %}checkbox{% else %}radio{% endif %}" name="answer_correct[]" value="{{ forloop.counter0 }}" class="form-check-input" {% if answer.is_correct %}checked{% endif %} required>
+                                </div>
+                                <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" value="{{ answer.text }}" required>
+                                <input type="hidden" name="answer_id[]" value="{{ answer.id }}">
+                                <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
                             </div>
-                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
-                            <button type="button" class="btn btn-secondary btn-sm remove-answer hidden-inline">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="answer-row">
-                            <div class="answer-check">
-                                <input type="radio" name="answer_correct" value="1" class="form-check-input">
+                            {% endfor %}
+                        {% else %}
+                            <div class="answer-row">
+                                <div class="answer-check">
+                                    <input type="radio" name="answer_correct[]" value="0" class="form-check-input" required>
+                                </div>
+                                <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                                <input type="hidden" name="answer_id[]" value="">
+                                <button type="button" class="btn btn-secondary btn-sm remove-answer hidden-inline">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
                             </div>
-                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
-                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="answer-row">
-                            <div class="answer-check">
-                                <input type="radio" name="answer_correct" value="2" class="form-check-input">
+                            <div class="answer-row">
+                                <div class="answer-check">
+                                    <input type="radio" name="answer_correct[]" value="1" class="form-check-input">
+                                </div>
+                                <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                                <input type="hidden" name="answer_id[]" value="">
+                                <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
                             </div>
-                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
-                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="answer-row">
-                            <div class="answer-check">
-                                <input type="radio" name="answer_correct" value="3" class="form-check-input">
+                            <div class="answer-row">
+                                <div class="answer-check">
+                                    <input type="radio" name="answer_correct[]" value="2" class="form-check-input">
+                                </div>
+                                <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                                <input type="hidden" name="answer_id[]" value="">
+                                <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
                             </div>
-                            <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
-                            <button type="button" class="btn btn-secondary btn-sm remove-answer">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
+                            <div class="answer-row">
+                                <div class="answer-check">
+                                    <input type="radio" name="answer_correct[]" value="3" class="form-check-input">
+                                </div>
+                                <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+                                <input type="hidden" name="answer_id[]" value="">
+                                <button type="button" class="btn btn-secondary btn-sm remove-answer">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        {% endif %}
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm mt-2 hidden-inline" id="addAnswerBtn">
                         Добавить вариант
                     </button>
                 </div>
-                
+
                 <div class="form-actions mt-3">
-                    <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
+                    <button type="submit" class="btn btn-primary">{% if question %}Сохранить изменения{% else %}Сохранить вопрос{% endif %}</button>
                     <a href="{% url 'teacher_test_edit' test.id %}" class="btn btn-secondary">Отмена</a>
                 </div>
             </form>
@@ -159,7 +186,7 @@
 
         inputs.forEach((input, index) => {
             input.type = isMultiple ? 'checkbox' : 'radio';
-            input.name = isMultiple ? 'answer_correct[]' : 'answer_correct';
+            input.name = 'answer_correct[]';
             // Для radio сбрасываем checked, чтобы остался только один выбранный
             if (!isMultiple && index === 0) {
                 input.checked = true;
@@ -174,15 +201,15 @@
 
         const isMultiple = questionType.value === 'multiple';
         const inputType = isMultiple ? 'checkbox' : 'radio';
-        const inputName = isMultiple ? 'answer_correct[]' : 'answer_correct';
 
         const newRow = document.createElement('div');
         newRow.className = 'answer-row';
         newRow.innerHTML = `
             <div class="answer-check">
-                <input type="${inputType}" name="${inputName}" value="${newIndex}" class="form-check-input">
+                <input type="${inputType}" name="answer_correct[]" value="${newIndex}" class="form-check-input">
             </div>
             <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
+            <input type="hidden" name="answer_id[]" value="">
             <button type="button" class="btn btn-secondary btn-sm remove-answer">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -190,9 +217,9 @@
                 </svg>
             </button>
         `;
-        
+
         answersContainer.appendChild(newRow);
-        
+
         // Добавляем обработчик удаления
         newRow.querySelector('.remove-answer').addEventListener('click', function() {
             if (answersContainer.querySelectorAll('.answer-row').length > 2) {
