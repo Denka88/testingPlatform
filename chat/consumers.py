@@ -1,7 +1,10 @@
 import json
+import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
+
+logger = logging.getLogger(__name__)
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -76,7 +79,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         # Сохраняем сообщение в базу данных
-        await self.save_message(message_text)
+        message = await self.save_message(message_text)
 
         # Отправляем сообщение в группу
         await self.channel_layer.group_send(
@@ -90,10 +93,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
         )
 
+        # Отправляем уведомление получателю
+        logger.info(f'Sending notification to notifications_{self.other_user_id} from user {int(self.user.id)}')
+        await self.channel_layer.group_send(
+            f'notifications_{self.other_user_id}',
+            {
+                'type': 'new_message',
+                'sender_id': int(self.user.id),
+                'sender_name': self.user.get_full_name() or self.user.username,
+                'message': message_text,
+                'unread_count': await self.get_unread_count(),
+            }
+        )
+
     async def chat_message(self, event):
         """
         Отправка сообщения в WebSocket.
         """
+        # Помечаем входящие сообщения как прочитанные (только чужие, не свои)
+        if event['sender_id'] != int(self.user.id):
+            await self.mark_messages_as_read()
+            # После пометки как прочитанное отправляем уведомление с актуальным счётчиком
+            # (это перезаписывает бейдж на всех других вкладках)
+            unread_count = await self.get_unread_count()
+            await self.channel_layer.group_send(
+                f'notifications_{self.user.id}',
+                {
+                    'type': 'new_message',
+                    'sender_id': event['sender_id'],
+                    'sender_name': event['sender_name'],
+                    'message': event['message'],
+                    'unread_count': unread_count,
+                }
+            )
+
         await self.send(text_data=json.dumps({
             'type': 'message',
             'message': event['message'],
@@ -142,6 +175,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
             for m in messages
         ]
+
+    @database_sync_to_async
+    def get_unread_count(self):
+        """Получить количество непрочитанных сообщений для получателя."""
+        from .models import Message
+        return Message.objects.filter(receiver=self.other_user, is_read=False).count()
 
     @database_sync_to_async
     def mark_messages_as_read(self):

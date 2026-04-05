@@ -135,6 +135,9 @@
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
                             <span>Чат</span>
+                            {% if total_unread_messages > 0 %}
+                                <span class="nav-badge">{{ total_unread_messages }}</span>
+                            {% endif %}
                         </a>
                     {% endif %}
 
@@ -146,6 +149,9 @@
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
                             <span>Чаты пользователей</span>
+                            {% if total_unread_messages > 0 %}
+                                <span class="nav-badge">{{ total_unread_messages }}</span>
+                            {% endif %}
                         </a>
                     {% endif %}
 
@@ -205,6 +211,9 @@
                         <line x1="3" y1="6" x2="21" y2="6"></line>
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
+                    {% if total_unread_messages > 0 %}
+                        <span class="menu-toggle-badge"></span>
+                    {% endif %}
                 </button>
 
                 <div class="topbar-title">
@@ -274,6 +283,97 @@
     </div>
 
     <script src="{% static 'js/main.js' %}"></script>
+
+    {% if user.is_authenticated %}
+    <script>
+    // ==================== WebSocket уведомления о новых сообщениях ====================
+    (function() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + '/ws/notifications/';
+        let notificationSocket = null;
+        let reconnectTimeout = null;
+
+        function connectNotifications() {
+            console.log('[Notifications] Connecting to', wsUrl);
+            notificationSocket = new WebSocket(wsUrl);
+
+            notificationSocket.onopen = function() {
+                console.log('[Notifications] Connected');
+            };
+
+            notificationSocket.onmessage = function(e) {
+                console.log('[Notifications] Received:', e.data);
+                const data = JSON.parse(e.data);
+
+                if (data.type === 'new_message') {
+                    updateBadges(data.unread_count);
+                }
+            };
+
+            notificationSocket.onclose = function() {
+                console.log('[Notifications] Closed, reconnecting in 3s');
+                reconnectTimeout = setTimeout(connectNotifications, 3000);
+            };
+
+            notificationSocket.onerror = function(e) {
+                console.error('[Notifications] Error:', e);
+            };
+        }
+
+        function updateBadges(count) {
+            // Не обновляем бейджи на странице чата — там сообщения уже прочитаны
+            if (window.location.pathname.startsWith('/chat')) {
+                return;
+            }
+
+            // Обновляем бейдж на пункте меню «Чат» (создаём если нет)
+            let navBadges = document.querySelectorAll('.nav-badge');
+            navBadges.forEach(function(badge) {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.textContent = '';
+                    badge.style.display = 'none';
+                }
+            });
+
+            // Если бейджей нет в DOM — создаём их
+            if (navBadges.length === 0 && count > 0) {
+                const navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(function(item) {
+                    const href = item.getAttribute('href') || '';
+                    if (href.includes('/chat') || item.querySelector('.nav-icon + span')) {
+                        const span = item.querySelector('span');
+                        if (span && span.textContent.trim() === 'Чат') {
+                            const badge = document.createElement('span');
+                            badge.className = 'nav-badge';
+                            badge.textContent = count;
+                            item.appendChild(badge);
+                        }
+                    }
+                });
+            }
+
+            // Обновляем кружок на кнопке гамбургера (создаём если нет)
+            let menuBadge = document.querySelector('.menu-toggle-badge');
+            if (menuBadge) {
+                menuBadge.style.display = count > 0 ? 'block' : 'none';
+            } else if (count > 0) {
+                const menuToggle = document.getElementById('menuToggle');
+                if (menuToggle) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'menu-toggle-badge';
+                    menuToggle.appendChild(newBadge);
+                }
+            }
+        }
+
+        connectNotifications();
+    })();
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

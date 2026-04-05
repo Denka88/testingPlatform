@@ -84,3 +84,26 @@ class Message(models.Model):
             receiver=user,
             is_read=False
         ).update(is_read=True)
+
+    @classmethod
+    def get_conversation_with_dates(cls, user1, user2):
+        """
+        Получить сообщения между двумя пользователями с разделителями по датам.
+        Возвращает список словарей: {'type': 'message', 'data': Message} или {'type': 'date', 'date': datetime.date}
+        """
+        messages = cls.get_conversation(user1, user2)
+        
+        result = []
+        last_date = None
+        
+        for message in messages:
+            msg_date = message.created_at.date()
+            
+            # Если дата изменилась, добавляем разделитель
+            if msg_date != last_date:
+                result.append({'type': 'date', 'date': msg_date})
+                last_date = msg_date
+            
+            result.append({'type': 'message', 'data': message})
+        
+        return result

@@ -23,11 +23,9 @@
                 <h1 class="result-title">{{ result.test.title }}</h1>
                 <p class="result-subject">{{ result.test.subject.name }}</p>
             </div>
-            {% if user.is_teacher or result.test.show_correct_answers %}
             <div class="result-grade-main grade-{{ result.grade }}">
                 {{ result.grade }}
             </div>
-            {% endif %}
         </div>
 
         <div class="result-stats-grid">
@@ -45,7 +43,6 @@
                 <span class="result-stat-value">{{ result.duration_seconds|format_duration }}</span>
             </div>
             {% endif %}
-            {% if user.is_teacher or result.test.show_correct_answers %}
             <div class="result-stat-card">
                 <span class="result-stat-label">Правильно</span>
                 <span class="result-stat-value">{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
@@ -58,7 +55,6 @@
                     <span class="result-stat-value">—</span>
                 {% endif %}
             </div>
-            {% endif %}
             {% if user.is_teacher %}
             <div class="result-stat-card">
                 <span class="result-stat-label">Переключения вкладок</span>
@@ -106,7 +102,7 @@
                                         </span>
                                     {% endif %}
                                 {% else %}
-                                    <span class="review-answer-tag">
+                                    <span class="review-answer-tag selected">
                                         {{ answer.text }}
                                     </span>
                                 {% endif %}
