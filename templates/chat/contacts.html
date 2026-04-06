@@ -926,6 +926,80 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Обновление бейджа непрочитанных сообщений у конкретного контакта
+function updateContactBadge(senderId, unreadCount, lastMessage) {
+    // Находим контакт в списке
+    const contactItems = document.querySelectorAll('.contact-item');
+    let found = false;
+
+    for (let i = 0; i < contactItems.length; i++) {
+        const item = contactItems[i];
+        const link = item.querySelector('.contact-link');
+        if (!link) continue;
+
+        const href = link.getAttribute('href');
+        if (!href) continue;
+
+        // Извлекаем ID пользователя из href (?chat=ID)
+        const match = href.match(/\?chat=(\d+)/);
+        if (!match) continue;
+
+        const contactId = parseInt(match[1]);
+        if (contactId === senderId) {
+            found = true;
+            const badge = item.querySelector('.unread-badge');
+            const messageEl = item.querySelector('.contact-last-message');
+            const timeEl = item.querySelector('.contact-time');
+
+            if (unreadCount > 0) {
+                // Добавляем или обновляем бейдж
+                if (badge) {
+                    badge.textContent = unreadCount;
+                } else {
+                    const nameEl = item.querySelector('.contact-name');
+                    if (nameEl) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'unread-badge';
+                        newBadge.textContent = unreadCount;
+                        nameEl.appendChild(newBadge);
+                    }
+                }
+
+                // Добавляем класс has-unread
+                item.classList.add('has-unread');
+
+                // Обновляем текст последнего сообщения
+                if (messageEl && lastMessage) {
+                    messageEl.textContent = lastMessage;
+                    messageEl.classList.add('unread');
+                }
+
+                // Обновляем время
+                if (timeEl) {
+                    timeEl.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                }
+            } else {
+                // Убираем бейдж
+                if (badge) {
+                    badge.remove();
+                }
+                item.classList.remove('has-unread');
+                if (messageEl) {
+                    messageEl.classList.remove('unread');
+                }
+            }
+            break;
+        }
+    }
+
+    // Если контакт не найден и есть непрочитанные, можно добавить его динамически
+    // (но обычно контакт уже есть в списке)
+    if (!found && unreadCount > 0) {
+        // Обновляем общий бейдж в навигации
+        console.log('Contact not found in list, senderId:', senderId);
+    }
+}
+
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
     // Мобильная навигация - кнопка назад
@@ -1037,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 : `<span>${escapeHtml(initials)}</span>`;
 
                             const chatBadge = user.has_chatted
-                                ? '<span style="font-size: 11px; color: var(--success-color); margin-left: 8px;" title="Уже общались">💬</span>'
+                                ? '<span style="font-size: 11px; margin-left: 8px;" title="Уже общались"><i class="fa-solid fa-comment" style="color: var(--success-color);"></i></span>'
                                 : '';
 
                             li.innerHTML = `
@@ -1074,6 +1148,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+    }
+
+    // Подключаемся к уведомлениям для обновления бейджей контактов
+    // Создаем отдельное WebSocket подключение к уведомлениям
+    // (отдельное от base.html, т.к. нам нужен sender_id для обновления конкретного контакта)
+    let notificationSocket = null;
+
+    function connectNotifications() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = protocol + '//' + window.location.host + '/ws/notifications/';
+
+        notificationSocket = new WebSocket(wsUrl);
+
+        notificationSocket.onopen = function() {
+            // Подключено
+        };
+
+        notificationSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+
+            if (data.type === 'new_message') {
+                // Обновляем бейдж у конкретного контакта
+                updateContactBadge(data.sender_id, data.unread_count, data.message);
+            }
+        };
+
+        notificationSocket.onclose = function() {
+            // Переподключение через 3 секунды
+            setTimeout(connectNotifications, 3000);
+        };
+
+        notificationSocket.onerror = function(e) {
+            // Ошибка
+        };
+    }
+
+    // Подключаем уведомления только если мы НЕ в конкретном чате
+    // (если мы в чате, chatSocket сам помечает сообщения как прочитанные)
+    if (!activeChatId || activeChatId === 'null') {
+        connectNotifications();
     }
 
     // Подключение WebSocket при загрузке

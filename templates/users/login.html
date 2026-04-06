@@ -6,7 +6,7 @@
 <div class="auth-container">
     <div class="auth-card">
         <div class="auth-header">
-            <div class="auth-logo">📝</div>
+            <div class="auth-logo"><i class="fa-solid fa-clipboard-list"></i></div>
             <h1 class="auth-title">Платформа тестирования</h1>
             <p class="auth-subtitle">Войдите в свой аккаунт</p>
         </div>
@@ -129,6 +129,14 @@
     .auth-logo {
         font-size: 3rem;
         margin-bottom: 16px;
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-logo i {
+        font-size: inherit;
     }
 
     .auth-title {

@@ -1,8 +1,5 @@
 import json
-import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
-
-logger = logging.getLogger(__name__)
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
@@ -14,10 +11,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
 
-        logger.info(f'NotificationConsumer connect: user={self.user}, authenticated={self.user.is_authenticated}')
-
         if not self.user.is_authenticated:
-            logger.warning('NotificationConsumer: anonymous user, closing')
             await self.close()
             return
 
@@ -30,7 +24,6 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-        logger.info(f'NotificationConsumer accepted, group={self.group_name}')
 
     async def disconnect(self, close_code):
         if hasattr(self, 'group_name'):
@@ -38,11 +31,9 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 self.group_name,
                 self.channel_name
             )
-            logger.info(f'NotificationConsumer disconnected, group={self.group_name}')
 
     async def new_message(self, event):
         """Отправка уведомления о новом сообщении в WebSocket."""
-        logger.info(f'NotificationConsumer sending new_message: sender={event.get("sender_id")}, unread={event.get("unread_count")}')
         await self.send(text_data=json.dumps({
             'type': 'new_message',
             'sender_id': event['sender_id'],

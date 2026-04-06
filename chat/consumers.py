@@ -1,10 +1,7 @@
 import json
-import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-
-logger = logging.getLogger(__name__)
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -94,7 +91,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         # Отправляем уведомление получателю
-        logger.info(f'Sending notification to notifications_{self.other_user_id} from user {int(self.user.id)}')
         await self.channel_layer.group_send(
             f'notifications_{self.other_user_id}',
             {

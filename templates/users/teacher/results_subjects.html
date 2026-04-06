@@ -52,7 +52,7 @@
                     <div class="subject-card-body">
                         <div class="subject-card-header">
                             {% if not subject.image %}
-                                <div class="subject-card-icon">📖</div>
+                                <div class="subject-card-icon"><i class="fa-solid fa-book"></i></div>
                             {% endif %}
                             <div class="subject-card-info">
                                 <h2 class="subject-card-title">{{ subject.name }}</h2>
@@ -95,7 +95,7 @@
         </div>
     {% else %}
         <div class="empty-state">
-            <div class="empty-state-icon">📚</div>
+            <div class="empty-state-icon"><i class="fa-solid fa-books"></i></div>
             <h3 class="empty-state-title">Предметы не найдены</h3>
             <p class="empty-state-text">
                 {% if search %}

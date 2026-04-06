@@ -470,6 +470,11 @@ def test_result_reset(request, result_id):
     result.delete()
 
     messages.success(request, f'Результат студента {student_name} за тест "{test_title}" сброшен. Студент может пройти тест заново.')
+
+    # Возвращаем на страницу, с которой пришли
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('teacher_results')
 
 

@@ -76,9 +76,9 @@
                     {% if user.is_teacher or result.test.show_correct_answers %}
                     <span class="answer-review-status {% if student_answer.is_correct %}correct{% else %}incorrect{% endif %}">
                         {% if student_answer.is_correct %}
-                            ✓ Правильно
+                            <i class="fa-solid fa-check"></i> Правильно
                         {% else %}
-                            ✗ Неправильно
+                            <i class="fa-solid fa-xmark"></i> Неправильно
                         {% endif %}
                     </span>
                     {% endif %}
@@ -94,11 +94,11 @@
                                 {% if user.is_teacher or result.test.show_correct_answers %}
                                     {% if answer.is_correct %}
                                         <span class="review-answer-tag correct selected">
-                                            ✓ {{ answer.text }}
+                                            <i class="fa-solid fa-check"></i> {{ answer.text }}
                                         </span>
                                     {% else %}
                                         <span class="review-answer-tag incorrect selected">
-                                            ✗ {{ answer.text }}
+                                            <i class="fa-solid fa-xmark"></i> {{ answer.text }}
                                         </span>
                                     {% endif %}
                                 {% else %}

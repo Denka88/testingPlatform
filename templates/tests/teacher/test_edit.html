@@ -132,7 +132,7 @@
                     <div class="question-answers">
                         {% for answer in question.answers.all %}
                             <div class="answer-item {% if answer.is_correct %}answer-correct{% endif %}">
-                                <span class="answer-marker">{% if answer.is_correct %}✓{% else %}✗{% endif %}</span>
+                                <span class="answer-marker">{% if answer.is_correct %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</span>
                                 <span class="answer-text">{{ answer.text }}</span>
                             </div>
                         {% endfor %}
@@ -157,7 +157,7 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <div class="empty-state-icon">❓</div>
+                <div class="empty-state-icon"><i class="fa-solid fa-circle-question"></i></div>
                 <h3 class="empty-state-title">Нет вопросов</h3>
                 <p class="empty-state-text">Добавьте первый вопрос к этому тесту</p>
                 <a href="{% url 'teacher_question_create' test.id %}" class="btn btn-primary">

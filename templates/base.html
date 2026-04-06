@@ -6,6 +6,7 @@
     <title>{% block title %}Платформа тестирования{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     {% block extra_css %}{% endblock %}
     <script>
         // Применяем состояние меню до отрисовки (предотвращаем мерцание)
@@ -26,7 +27,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <a href="{% url 'dashboard' %}" class="logo">
-                    <span class="logo-icon">📝</span>
+                    <i class="fa-solid fa-clipboard-list logo-icon"></i>
                     <span class="logo-text">Тестирование</span>
                 </a>
                 <button class="sidebar-close" id="sidebarClose" aria-label="Закрыть меню">
@@ -57,22 +58,6 @@
                         </svg>
                         <span>Профиль</span>
                     </a>
-
-                    <!-- Администратор -->
-                    {% if user.is_admin %}
-                        <div class="nav-section">
-                            <span class="nav-section-title">Администрирование</span>
-                            <a href="/admin/" class="nav-item">
-                                <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                </svg>
-                                <span>Админка</span>
-                            </a>
-                        </div>
-                    {% endif %}
 
                     <!-- Преподаватель -->
                     {% if user.is_teacher %}
@@ -135,23 +120,7 @@
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                             </svg>
                             <span>Чат</span>
-                            {% if total_unread_messages > 0 %}
-                                <span class="nav-badge">{{ total_unread_messages }}</span>
-                            {% endif %}
-                        </a>
-                    {% endif %}
-
-                    <!-- Чат для администратора (просмотр) -->
-                    {% if user.is_admin %}
-                        <a href="{% url 'chat:admin_chat_list' %}" class="nav-item nav-item-spaced {% if 'admin_chat' in request.resolver_match.url_name %}active{% endif %}">
-                            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                            <span>Чаты пользователей</span>
-                            {% if total_unread_messages > 0 %}
-                                <span class="nav-badge">{{ total_unread_messages }}</span>
-                            {% endif %}
+                            <span class="nav-badge" {% if total_unread_messages <= 0 %}style="display:none"{% endif %}>{{ total_unread_messages }}</span>
                         </a>
                     {% endif %}
 
@@ -213,6 +182,8 @@
                     </svg>
                     {% if total_unread_messages > 0 %}
                         <span class="menu-toggle-badge"></span>
+                    {% else %}
+                        <span class="menu-toggle-badge" style="display:none"></span>
                     {% endif %}
                 </button>
 
@@ -294,15 +265,13 @@
         let reconnectTimeout = null;
 
         function connectNotifications() {
-            console.log('[Notifications] Connecting to', wsUrl);
             notificationSocket = new WebSocket(wsUrl);
 
             notificationSocket.onopen = function() {
-                console.log('[Notifications] Connected');
+                // Подключено
             };
 
             notificationSocket.onmessage = function(e) {
-                console.log('[Notifications] Received:', e.data);
                 const data = JSON.parse(e.data);
 
                 if (data.type === 'new_message') {
@@ -311,61 +280,37 @@
             };
 
             notificationSocket.onclose = function() {
-                console.log('[Notifications] Closed, reconnecting in 3s');
+                // Переподключение через 3 секунды
                 reconnectTimeout = setTimeout(connectNotifications, 3000);
             };
 
             notificationSocket.onerror = function(e) {
-                console.error('[Notifications] Error:', e);
+                // Ошибка
             };
         }
 
         function updateBadges(count) {
-            // Не обновляем бейджи на странице чата — там сообщения уже прочитаны
-            if (window.location.pathname.startsWith('/chat')) {
+            // Не обновляем бейджи, если конкретный чат открыт —
+            // там сообщения помечаются как прочитанные через chat_message
+            if (typeof activeChatId !== 'undefined' && activeChatId && activeChatId !== 'null') {
                 return;
             }
 
-            // Обновляем бейдж на пункте меню «Чат» (создаём если нет)
-            let navBadges = document.querySelectorAll('.nav-badge');
-            navBadges.forEach(function(badge) {
+            // Обновляем бейджи на пунктах меню
+            var navBadges = document.querySelectorAll('.nav-badge');
+            for (var i = 0; i < navBadges.length; i++) {
                 if (count > 0) {
-                    badge.textContent = count;
-                    badge.style.display = 'inline-flex';
+                    navBadges[i].textContent = count;
+                    navBadges[i].style.display = 'inline-flex';
                 } else {
-                    badge.textContent = '';
-                    badge.style.display = 'none';
+                    navBadges[i].style.display = 'none';
                 }
-            });
-
-            // Если бейджей нет в DOM — создаём их
-            if (navBadges.length === 0 && count > 0) {
-                const navItems = document.querySelectorAll('.nav-item');
-                navItems.forEach(function(item) {
-                    const href = item.getAttribute('href') || '';
-                    if (href.includes('/chat') || item.querySelector('.nav-icon + span')) {
-                        const span = item.querySelector('span');
-                        if (span && span.textContent.trim() === 'Чат') {
-                            const badge = document.createElement('span');
-                            badge.className = 'nav-badge';
-                            badge.textContent = count;
-                            item.appendChild(badge);
-                        }
-                    }
-                });
             }
 
-            // Обновляем кружок на кнопке гамбургера (создаём если нет)
-            let menuBadge = document.querySelector('.menu-toggle-badge');
+            // Обновляем кружок на кнопке гамбургера
+            var menuBadge = document.querySelector('.menu-toggle-badge');
             if (menuBadge) {
                 menuBadge.style.display = count > 0 ? 'block' : 'none';
-            } else if (count > 0) {
-                const menuToggle = document.getElementById('menuToggle');
-                if (menuToggle) {
-                    const newBadge = document.createElement('span');
-                    newBadge.className = 'menu-toggle-badge';
-                    menuToggle.appendChild(newBadge);
-                }
             }
         }
 
