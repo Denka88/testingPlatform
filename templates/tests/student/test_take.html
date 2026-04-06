@@ -493,29 +493,33 @@
     const answeredCountEl = document.getElementById('answeredCount');
     
     let currentQuestionIndex = 0;
-    let timeRemaining = {{ test.time_limit }} * 60;
     let timerInterval;
-    
+
+    // Серверные данные: время начала (мс) и лимит в минутах
+    const startedAtMs = {{ started_at_ms }};
+    const limitSeconds = {{ test.time_limit }};
+
     // Показываем первый вопрос
     showQuestion(0);
-    
-    // Таймер
-    function startTimer() {
-        timerInterval = setInterval(function() {
-            timeRemaining--;
-            
-            const mins = Math.floor(timeRemaining / 60);
-            const secs = timeRemaining % 60;
-            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            
-            if (timeRemaining <= 0) {
-                clearInterval(timerInterval);
-                submitTest();
-            }
-        }, 1000);
+
+    // Таймер — каждый раз вычисляем от реального времени, а не декрементируем
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
+        const timeRemaining = Math.max(0, limitSeconds * 60 - elapsed);
+
+        const mins = Math.floor(timeRemaining / 60);
+        const secs = timeRemaining % 60;
+        timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            submitTest();
+        }
     }
-    
-    startTimer();
+
+    // Обновляем каждую секунду
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();  // сразу показать актуальное время
     
     // Навигация
     function showQuestion(index) {
@@ -674,6 +678,8 @@
 
     // Предотвращение закрытия страницы во время теста
     function preventClose(e) {
+        const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
+        const timeRemaining = Math.max(0, limitSeconds * 60 - elapsed);
         if (timeRemaining > 0) {
             e.preventDefault();
             e.returnValue = '';

@@ -315,10 +315,14 @@ def test_take(request, test_id):
 
     questions = test.questions.prefetch_related('answers').all()
 
+    # Передаём started_at как unix-таймстамп (мс) для JS-вычисления
+    started_at_timestamp = int(result.started_at.timestamp() * 1000)
+
     context = {
         'test': test,
         'result': result,
         'questions': questions,
+        'started_at_ms': started_at_timestamp,
     }
     return render(request, 'tests/student/test_take.html', context)
 
