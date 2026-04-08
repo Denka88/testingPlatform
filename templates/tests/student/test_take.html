@@ -14,7 +14,7 @@
         </div>
         <div class="test-info-item">
             <span class="test-info-label">Вопрос</span>
-            <span class="test-info-value"><span id="currentQuestion">1</span> / {{ questions.count }}</span>
+            <span class="test-info-value"><span id="currentQuestion">1</span> / {{ questions|length }}</span>
         </div>
         <div class="test-info-item">
             <span class="test-info-label">Предмет</span>
@@ -28,7 +28,20 @@
     
     <form id="testForm" class="test-form" data-result-id="{{ result.id }}">
         {% csrf_token %}
-        
+
+        <!-- Навигация по вопросам -->
+        <div class="question-nav-grid">
+            {% for question in questions %}
+            <button type="button"
+                    class="question-nav-btn"
+                    data-question-id="{{ question.id }}"
+                    data-question-index="{{ forloop.counter0 }}"
+                    title="Вопрос {{ forloop.counter }}">
+                <span class="question-nav-number">{{ forloop.counter }}</span>
+            </button>
+            {% endfor %}
+        </div>
+
         <div class="questions-wrapper">
             {% for question in questions %}
             <div class="question-card" data-question-id="{{ question.id }}">
@@ -107,7 +120,7 @@
     <div class="modal">
         <h3 class="modal-title">Завершить тестирование?</h3>
         <p class="modal-text">
-            Вы ответили на <span id="answeredCount">0</span> из {{ questions.count }} вопросов.
+            Вы ответили на <span id="answeredCount">0</span> из {{ questions|length }} вопросов.
             После завершения вы не сможете изменить ответы.
         </p>
         <div class="modal-actions">
@@ -120,27 +133,37 @@
 <!-- Результат -->
 <div class="result-overlay hidden-inline" id="resultOverlay">
     <div class="result-card">
-        <div class="result-icon" id="resultIcon">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-        </div>
         <h2 class="result-title">Тест завершен!</h2>
-        <div class="result-stats">
+
+        <!-- Спиннер загрузки -->
+        <div class="result-loading" id="resultLoading">
+            <div class="spinner"></div>
+            <span class="result-loading-text">Подсчитываем результат...</span>
+        </div>
+
+        <!-- Оценка — крупно, по центру -->
+        <div class="result-grade-section" id="resultGradeSection" style="display:none;">
+            <span class="result-grade-badge grade-" id="resultGrade">-</span>
+            <span class="result-grade-label">Оценка</span>
+        </div>
+
+        <!-- Статистика внизу -->
+        <div class="result-stats" id="resultStatsSection" style="display:none;">
             <div class="result-stat">
                 <span class="result-stat-value" id="correctCount">0</span>
                 <span class="result-stat-label">Правильных</span>
             </div>
             <div class="result-stat">
-                <span class="result-stat-value" id="totalCount">{{ questions.count }}</span>
+                <span class="result-stat-value" id="totalCount">{{ questions|length }}</span>
                 <span class="result-stat-label">Всего</span>
             </div>
             <div class="result-stat">
-                <span class="result-stat-value grade-badge grade-" id="resultGrade">-</span>
-                <span class="result-stat-label">Оценка</span>
+                <span class="result-stat-value" id="percentCount">0%</span>
+                <span class="result-stat-label">Верных</span>
             </div>
         </div>
-        <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg">
+
+        <a href="{% url 'student_dashboard' %}" class="btn btn-primary btn-lg" id="resultBackBtn" style="display:none;">
             Вернуться на главную
         </a>
     </div>
@@ -205,7 +228,58 @@
         border: 1px solid var(--border-color);
         overflow: hidden;
     }
-    
+
+    /* Навигационная сетка */
+    .question-nav-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 8px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color-light);
+        background-color: var(--bg-surface-secondary);
+    }
+
+    .question-nav-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        justify-self: center;
+    }
+
+    .question-nav-btn:hover {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary-light);
+    }
+
+    .question-nav-btn.active {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary);
+        color: white;
+    }
+
+    .question-nav-btn.answered {
+        border-bottom: 3px solid #22c55e;
+    }
+
+    .question-nav-btn.answered.active {
+        border-bottom: 3px solid #22c55e;
+    }
+
+    .question-nav-number {
+        line-height: 1;
+    }
+
     .questions-wrapper {
         min-height: 400px;
     }
@@ -389,9 +463,9 @@
     .result-card {
         background-color: var(--bg-surface);
         border-radius: var(--border-radius-lg);
-        padding: 48px;
+        padding: 40px 32px;
         text-align: center;
-        max-width: 500px;
+        max-width: 440px;
         width: 90%;
         transform: scale(0.9);
         animation: scaleIn 0.3s ease forwards 0.1s;
@@ -402,37 +476,48 @@
         to { transform: scale(1); opacity: 1; }
     }
 
-    .result-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto 24px;
-        background-color: var(--color-success);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .result-icon svg {
-        width: 40px;
-        height: 40px;
-    }
-
     .result-title {
         font-size: 1.5rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--text-primary);
+        margin: 0 0 24px 0;
+    }
+
+    /* Блок оценки — крупно, по центру */
+    .result-grade-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         margin-bottom: 32px;
     }
 
+    .result-grade-badge {
+        font-size: 4rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 10px;
+    }
+
+    .result-grade-badge.grade-5 { color: #22c55e; }
+    .result-grade-badge.grade-4 { color: #3b82f6; }
+    .result-grade-badge.grade-3 { color: #f59e0b; }
+    .result-grade-badge.grade-2 { color: #ef4444; }
+
+    .result-grade-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+    }
+
+    /* Статистика */
     .result-stats {
         display: flex;
         justify-content: space-around;
         align-items: center;
-        margin-bottom: 32px;
-        padding: 24px;
+        margin-bottom: 28px;
+        padding: 20px;
         background-color: var(--bg-surface-secondary);
         border-radius: var(--border-radius);
     }
@@ -440,38 +525,74 @@
     .result-stat {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
     }
 
     .result-stat-value {
-        font-size: 2rem;
+        font-size: 1.5rem;
         font-weight: 700;
-        color: var(--color-primary);
+        color: var(--text-primary);
         line-height: 1;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
-
-    .result-stat .grade-badge {
-        color: inherit;
-        min-width: 60px;
-        height: 60px;
-        font-size: 2rem;
-    }
-
-    .result-stat .grade-5 { color: #22c55e; }
-    .result-stat .grade-4 { color: #3b82f6; }
-    .result-stat .grade-3 { color: #f59e0b; }
-    .result-stat .grade-2 { color: #ef4444; }
 
     .result-stat-label {
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+
+    /* Спиннер загрузки */
+    .result-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 32px 0;
+    }
+
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--border-color);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .result-loading-text {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    /* На мобильных */
+    @media (max-width: 480px) {
+        .result-card {
+            padding: 32px 20px;
+        }
+
+        .result-title {
+            font-size: 1.25rem;
+        }
+
+        .result-stats {
+            padding: 16px 12px;
+        }
+
+        .result-stat-value {
+            font-size: 1.25rem;
+        }
     }
 </style>
 {% endblock %}
@@ -526,10 +647,10 @@
         questions.forEach((q, i) => {
             q.classList.toggle('active', i === index);
         });
-        
+
         currentQuestionIndex = index;
         currentQuestionEl.textContent = index + 1;
-        
+
         prevBtn.disabled = index === 0;
 
         if (index === questions.length - 1) {
@@ -540,59 +661,140 @@
             submitBtn.classList.add('hidden-inline');
         }
 
-        // Сохраняем состояние выбора
-        saveAnswers();
+        // Обновляем активную кнопку навигации
+        document.querySelectorAll('.question-nav-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
+        });
     }
-    
+
     prevBtn.addEventListener('click', function() {
         if (currentQuestionIndex > 0) {
             showQuestion(currentQuestionIndex - 1);
         }
     });
-    
+
     nextBtn.addEventListener('click', function() {
         if (currentQuestionIndex < questions.length - 1) {
             showQuestion(currentQuestionIndex + 1);
         }
     });
+
+    // Клик по кнопкам навигации
+    document.querySelectorAll('.question-nav-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.questionIndex);
+            showQuestion(index);
+        });
+    });
+
+    // Отслеживание отвеченных вопросов (по ID вопроса)
+    const answeredQuestions = new Set();
+
+    // Обновление статуса «отвечен» на кнопках навигации
+    function updateNavStatus() {
+        document.querySelectorAll('.question-nav-btn').forEach(btn => {
+            const qId = btn.dataset.questionId;
+            btn.classList.toggle('answered', answeredQuestions.has(qId));
+        });
+    }
+
+    // Восстановление ответов из sessionStorage при перезагрузке
+    function restoreAnswers() {
+        const saved = sessionStorage.getItem('testAnswers');
+        const answers = JSON.parse(saved || '{}');
+
+        Object.entries(answers).forEach(([questionId, answerValues]) => {
+            answeredQuestions.add(questionId);
+            answerValues.forEach(value => {
+                const selector = `.answer-input[data-question-id="${questionId}"][value="${value}"]`;
+                const input = document.querySelector(selector);
+                if (input) {
+                    input.checked = true;
+                    input.closest('.answer-option').classList.add('selected');
+                }
+            });
+        });
+
+        // Обновить подсветку навигации
+        updateNavStatus();
+    }
     
     // Подсветка выбранных ответов
     document.querySelectorAll('.answer-input').forEach(input => {
         input.addEventListener('change', function() {
             const questionType = this.closest('.answers-list').dataset.questionType;
             const questionCard = this.closest('.question-card');
-            
+            const questionId = questionCard.dataset.questionId;
+
             if (questionType === 'single') {
                 questionCard.querySelectorAll('.answer-option').forEach(opt => {
                     opt.classList.remove('selected');
                 });
                 if (this.checked) {
                     this.closest('.answer-option').classList.add('selected');
+                    answeredQuestions.add(questionId);
+                    // Сохраняем напрямую
+                    const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
+                    answers[questionId] = [this.value];
+                    sessionStorage.setItem('testAnswers', JSON.stringify(answers));
                 }
             } else {
                 this.closest('.answer-option').classList.toggle('selected', this.checked);
+                const anyChecked = questionCard.querySelectorAll('.answer-input:checked').length > 0;
+                if (anyChecked) {
+                    answeredQuestions.add(questionId);
+                } else {
+                    answeredQuestions.delete(questionId);
+                }
+                // Сохраняем напрямую для чекбоксов
+                const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
+                const values = [];
+                questionCard.querySelectorAll('.answer-input').forEach(inp => {
+                    if (inp.checked) values.push(inp.value);
+                });
+                if (values.length > 0) {
+                    answers[questionId] = values;
+                } else {
+                    delete answers[questionId];
+                }
+                sessionStorage.setItem('testAnswers', JSON.stringify(answers));
             }
-            
-            saveAnswers();
+
+            updateNavStatus();
         });
-        
+
         // Инициализация подсветки
         if (input.checked) {
+            const questionCard = input.closest('.question-card');
+            const questionId = questionCard.dataset.questionId;
             input.closest('.answer-option').classList.add('selected');
+            answeredQuestions.add(questionId);
         }
     });
+
+    // Инициализация: если новая попытка — очищаем старые ответы, иначе восстанавливаем
+    if ({% if is_new_attempt %}true{% else %}false{% endif %}) {
+        sessionStorage.removeItem('testAnswers');
+        answeredQuestions.clear();
+    } else {
+        restoreAnswers();
+    }
     
     // Сохранение ответов
     function saveAnswers() {
         const answers = {};
-        document.querySelectorAll('.answer-input:checked').forEach(input => {
-            const questionId = input.dataset.questionId;
-            if (!answers[questionId]) {
-                answers[questionId] = [];
+        document.querySelectorAll('.answer-input').forEach(input => {
+            if (input.checked) {
+                const questionId = input.dataset.questionId;
+                const value = input.value;
+                if (!answers[questionId]) {
+                    answers[questionId] = [];
+                }
+                answers[questionId].push(value);
             }
-            answers[questionId].push(input.value);
         });
-        sessionStorage.setItem('testAnswers', JSON.stringify(answers));
+        const json = JSON.stringify(answers);
+        sessionStorage.setItem('testAnswers', json);
     }
     
     // Подсчет отвеченных вопросов
@@ -619,11 +821,14 @@
     
     function submitTest() {
         clearInterval(timerInterval);
-        
+
+        // Показываем overlay со спиннером сразу
+        resultOverlay.classList.remove('hidden-inline');
+
         const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
         const formData = new FormData();
         formData.append('answers', JSON.stringify(answers));
-        
+
         fetch('{% url "test_submit" result.id %}', {
             method: 'POST',
             body: formData,
@@ -637,40 +842,45 @@
                 showResult(data);
             } else {
                 alert('Ошибка при отправке: ' + data.error);
+                resultOverlay.classList.add('hidden-inline');
             }
         })
         .catch(err => {
             alert('Ошибка сети: ' + err);
+            resultOverlay.classList.add('hidden-inline');
         });
     }
-    
+
     function showResult(data) {
+        // Скрываем спиннер
+        document.getElementById('resultLoading').style.display = 'none';
+
+        // Статистика
         document.getElementById('correctCount').textContent = data.correct_count;
         document.getElementById('totalCount').textContent = data.total_questions;
+
+        // Процент (ограничен 100%)
+        const pct = data.total_questions > 0
+            ? Math.min(100, Math.round(data.correct_count / data.total_questions * 100))
+            : 0;
+        document.getElementById('percentCount').textContent = pct + '%';
+
+        // Оценка — крупный бейдж
         const gradeEl = document.getElementById('resultGrade');
         gradeEl.textContent = data.grade;
-        gradeEl.className = 'result-stat-value grade-badge grade-' + data.grade;
+        gradeEl.className = 'result-grade-badge grade-' + data.grade;
 
-        // Показываем оценку в верхней панели
+        // Оценка в верхней панели
         const gradeInfoItem = document.getElementById('gradeInfoItem');
         const gradeValue = document.getElementById('gradeValue');
         gradeInfoItem.classList.remove('hidden-inline');
         gradeValue.textContent = data.grade;
         gradeValue.className = 'test-info-value grade-badge grade-' + data.grade;
 
-        const iconEl = document.getElementById('resultIcon');
-        if (data.grade >= 4) {
-            iconEl.style.backgroundColor = 'var(--color-success)';
-            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-        } else if (data.grade >= 3) {
-            iconEl.style.backgroundColor = 'var(--color-warning)';
-            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-        } else {
-            iconEl.style.backgroundColor = 'var(--color-error)';
-            iconEl.innerHTML = '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-        }
-
-        resultOverlay.classList.remove('hidden-inline');
+        // Показываем результат и кнопку
+        document.getElementById('resultGradeSection').style.display = 'flex';
+        document.getElementById('resultStatsSection').style.display = 'flex';
+        document.getElementById('resultBackBtn').style.display = '';
 
         // Отключаем предупреждение о закрытии страницы после завершения теста
         window.removeEventListener('beforeunload', preventClose);

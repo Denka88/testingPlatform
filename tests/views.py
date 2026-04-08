@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from datetime import timedelta
 import json
+import random
 
 from tests.models import Test, Question, Answer
 from results.models import Result, StudentAnswer
@@ -30,10 +31,11 @@ def teacher_test_create(request):
         time_limit = int(request.POST.get('time_limit', 60))
         is_published = request.POST.get('is_published') == 'on'
         show_correct_answers = request.POST.get('show_correct_answers') == 'on'
+        shuffle_questions = request.POST.get('shuffle_questions') == 'on'
         group_ids = request.POST.getlist('groups')
-        
+
         subject = get_object_or_404(Subject, id=subject_id)
-        
+
         test = Test.objects.create(
             subject=subject,
             title=title,
@@ -41,6 +43,7 @@ def teacher_test_create(request):
             time_limit=time_limit,
             is_published=is_published,
             show_correct_answers=show_correct_answers,
+            shuffle_questions=shuffle_questions,
             created_by=request.user
         )
         test.groups.set(group_ids)
@@ -77,6 +80,7 @@ def teacher_test_edit(request, test_id):
         test.time_limit = int(request.POST.get('time_limit', 60))
         test.is_published = request.POST.get('is_published') == 'on'
         test.show_correct_answers = request.POST.get('show_correct_answers') == 'on'
+        test.shuffle_questions = request.POST.get('shuffle_questions') == 'on'
         test.groups.set(request.POST.getlist('groups'))
         test.save()
         
@@ -313,16 +317,30 @@ def test_take(request, test_id):
             total_questions=test.questions.count()
         )
 
-    questions = test.questions.prefetch_related('answers').all()
+    questions = list(test.questions.prefetch_related('answers').all())
+
+    # Перемешиваем вопросы и ответы, если включено
+    if test.shuffle_questions:
+        random.shuffle(questions)
+        for question in questions:
+            answers_list = list(question.answers.all())
+            random.shuffle(answers_list)
+            question._prefetched_objects_cache = {'answers': answers_list}
 
     # Передаём started_at как unix-таймстамп (мс) для JS-вычисления
     started_at_timestamp = int(result.started_at.timestamp() * 1000)
+
+    # Определяем, новая ли это попытка (создана только что или в текущую сессию)
+    # Если elapsed < 10 секунд — считаем новой, нужно очистить старые ответы
+    elapsed = (timezone.now() - result.started_at).total_seconds()
+    is_new_attempt = elapsed < 10
 
     context = {
         'test': test,
         'result': result,
         'questions': questions,
         'started_at_ms': started_at_timestamp,
+        'is_new_attempt': is_new_attempt,
     }
     return render(request, 'tests/student/test_take.html', context)
 
@@ -381,8 +399,10 @@ def test_submit(request, result_id):
     result.device_info = request.META.get('HTTP_USER_AGENT', '')[:200]
     result.save()
     
-    # Вычисляем оценку
-    percentage = (correct_count / result.total_questions * 100) if result.total_questions > 0 else 0
+    # Вычисляем оценку (ограничиваем 100%)
+    actual_total = max(result.total_questions, correct_count)
+    percentage = (correct_count / actual_total * 100) if actual_total > 0 else 0
+    percentage = min(percentage, 100)
     
     if percentage >= 85:
         result.grade = 5

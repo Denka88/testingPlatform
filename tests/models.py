@@ -33,6 +33,11 @@ class Test(models.Model):
         verbose_name='Показывать правильные ответы',
         help_text='Показывать ли правильные ответы после прохождения'
     )
+    shuffle_questions = models.BooleanField(
+        default=False,
+        verbose_name='Перемешивать вопросы',
+        help_text='Если отмечено, порядок вопросов и ответов будет случайным для каждого студента'
+    )
     groups = models.ManyToManyField(
         'groups.Group',
         related_name='tests',
@@ -72,6 +77,7 @@ class Test(models.Model):
             time_limit=self.time_limit,
             is_published=False,
             show_correct_answers=self.show_correct_answers,
+            shuffle_questions=self.shuffle_questions,
             created_by=self.created_by
         )
         # Копируем вопросы
