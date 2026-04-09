@@ -69,46 +69,54 @@
             <h2 class="card-title">Ответы</h2>
         </div>
         <div class="card-body">
-            {% for student_answer in result.student_answers.all %}
+            {% for item in questions_with_answers %}
             <div class="answer-review">
                 <div class="answer-review-header">
                     <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
                     {% if user.is_teacher or result.test.show_correct_answers %}
-                    <span class="answer-review-status {% if student_answer.is_correct %}correct{% else %}incorrect{% endif %}">
-                        {% if student_answer.is_correct %}
-                            <i class="fa-solid fa-check"></i> Правильно
+                    <span class="answer-review-status {% if item.student_answer and item.student_answer.is_correct %}correct{% elif item.student_answer %}incorrect{% endif %}">
+                        {% if item.student_answer %}
+                            {% if item.student_answer.is_correct %}
+                                <i class="fa-solid fa-check"></i> Правильно
+                            {% else %}
+                                <i class="fa-solid fa-xmark"></i> Неправильно
+                            {% endif %}
                         {% else %}
-                            <i class="fa-solid fa-xmark"></i> Неправильно
+                            <i class="fa-solid fa-minus"></i> Нет ответа
                         {% endif %}
                     </span>
                     {% endif %}
                 </div>
 
-                <p class="answer-review-question">{{ student_answer.question.text }}</p>
+                <p class="answer-review-question">{{ item.question.text }}</p>
 
                 <div class="answer-review-answers">
                     <div class="review-answers-section">
-                        <span class="review-section-label">Ваш ответ:</span>
+                        <span class="review-section-label">Выбранный ответ:</span>
                         <div class="review-answers-list">
-                            {% for answer in student_answer.answers.all %}
-                                {% if user.is_teacher or result.test.show_correct_answers %}
-                                    {% if answer.is_correct %}
-                                        <span class="review-answer-tag correct selected">
-                                            <i class="fa-solid fa-check"></i> {{ answer.text }}
-                                        </span>
+                            {% if item.student_answer %}
+                                {% for answer in item.student_answer.answers.all %}
+                                    {% if user.is_teacher or result.test.show_correct_answers %}
+                                        {% if answer.is_correct %}
+                                            <span class="review-answer-tag correct selected">
+                                                <i class="fa-solid fa-check"></i> {{ answer.text }}
+                                            </span>
+                                        {% else %}
+                                            <span class="review-answer-tag incorrect selected">
+                                                <i class="fa-solid fa-xmark"></i> {{ answer.text }}
+                                            </span>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="review-answer-tag incorrect selected">
-                                            <i class="fa-solid fa-xmark"></i> {{ answer.text }}
+                                        <span class="review-answer-tag selected">
+                                            {{ answer.text }}
                                         </span>
                                     {% endif %}
-                                {% else %}
-                                    <span class="review-answer-tag selected">
-                                        {{ answer.text }}
-                                    </span>
-                                {% endif %}
-                            {% empty %}
-                                <span class="review-answer-tag no-answer">Нет ответа</span>
-                            {% endfor %}
+                                {% empty %}
+                                    <span class="review-answer-tag no-answer">Ответ не дан</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="review-answer-tag no-answer">Ответ не дан</span>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -116,7 +124,7 @@
                     <div class="review-answers-section">
                         <span class="review-section-label">Правильный ответ:</span>
                         <div class="review-answers-list">
-                            {% for correct_answer in student_answer.question.answers.all %}
+                            {% for correct_answer in item.question.answers.all %}
                                 {% if correct_answer.is_correct %}
                                     <span class="review-answer-tag correct">
                                         {{ correct_answer.text }}
@@ -154,18 +162,38 @@
                 <div class="grade-selector">
                     <input type="radio" name="grade" value="2" id="grade2" class="grade-input" {% if result.grade == 2 %}checked{% endif %}>
                     <label for="grade2" class="grade-option grade-2">2</label>
-                    
+
                     <input type="radio" name="grade" value="3" id="grade3" class="grade-input" {% if result.grade == 3 %}checked{% endif %}>
                     <label for="grade3" class="grade-option grade-3">3</label>
-                    
+
                     <input type="radio" name="grade" value="4" id="grade4" class="grade-input" {% if result.grade == 4 %}checked{% endif %}>
                     <label for="grade4" class="grade-option grade-4">4</label>
-                    
+
                     <input type="radio" name="grade" value="5" id="grade5" class="grade-input" {% if result.grade == 5 %}checked{% endif %}>
                     <label for="grade5" class="grade-option grade-5">5</label>
                 </div>
                 <button type="submit" class="btn btn-primary mt-2">Сохранить оценку</button>
             </form>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h2 class="card-title">Сбросить результат</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-3" style="color: var(--text-secondary); font-size: 0.9375rem;">
+                После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
+            </p>
+            <a href="{% url 'test_result_reset' result.id %}"
+               class="btn btn-danger"
+               onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Сбросить результат
+            </a>
         </div>
     </div>
     {% endif %}
@@ -426,7 +454,7 @@
         const grade = this.querySelector('input[name="grade"]:checked');
 
         if (!grade) {
-            alert('Выберите оценку');
+            showNotification('Выберите оценку', 'error');
             return;
         }
 
@@ -447,49 +475,73 @@
                 gradeElements.forEach(el => {
                     el.textContent = data.grade;
                 });
-                
+
                 // Показываем уведомление
                 showNotification('Оценка сохранена', 'success');
             } else {
-                alert('Ошибка: ' + data.error);
+                showNotification('Ошибка: ' + data.error, 'error');
             }
         })
         .catch(err => {
-            alert('Ошибка сети: ' + err);
+            showNotification('Ошибка сети: ' + err, 'error');
         });
     });
 })();
 
 function showNotification(message, type) {
-    // Создаем элемент уведомления
+    const colors = {
+        success: 'var(--color-success)',
+        error: 'var(--color-error)',
+        warning: 'var(--color-warning, #f59e0b)',
+        info: 'var(--color-primary)'
+    };
+
+    const icons = {
+        success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+        error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+        warning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+        info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
+    };
+
     const notification = document.createElement('div');
     notification.className = 'notification notification-' + type;
-    notification.textContent = message;
-    
-    // Добавляем стили
+
+    const bgColor = colors[type] || colors.info;
+
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
         padding: 16px 24px;
-        background-color: var(--color-success);
+        background-color: ${bgColor};
         color: white;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow-lg);
         z-index: 10000;
         font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
         animation: slideIn 0.3s ease;
+        max-width: 400px;
     `;
-    
+
+    notification.innerHTML = `
+        <span style="flex-shrink:0; display:flex; align-items:center;">${icons[type] || icons.info}</span>
+        <span style="flex:1;">${message}</span>
+        <button onclick="this.parentElement.remove();" style="background:none; border:none; color:white; cursor:pointer; flex-shrink:0; padding:4px; display:flex; align-items:center; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    `;
+
     document.body.appendChild(notification);
-    
-    // Удаляем через 3 секунды
+
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
             notification.remove();
         }, 300);
-    }, 3000);
+    }, 4000);
 }
 {% endif %}
 </script>

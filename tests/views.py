@@ -446,7 +446,25 @@ def test_result_detail(request, result_id):
             messages.error(request, 'У вас нет доступа к этому результату')
             return redirect('dashboard')
 
-    context = {'result': result}
+    # Получаем все вопросы теста
+    all_questions = result.test.questions.prefetch_related('answers').all().order_by('id')
+
+    # Создаём словарь ответов студента по question_id
+    student_answers_dict = {sa.question_id: sa for sa in result.student_answers.all()}
+
+    # Создаём список всех вопросов с ответами студента (или None)
+    questions_with_answers = []
+    for question in all_questions:
+        student_answer = student_answers_dict.get(question.id)
+        questions_with_answers.append({
+            'question': question,
+            'student_answer': student_answer,
+        })
+
+    context = {
+        'result': result,
+        'questions_with_answers': questions_with_answers,
+    }
     return render(request, 'tests/result_detail.html', context)
 
 
@@ -495,10 +513,7 @@ def test_result_reset(request, result_id):
 
     messages.success(request, f'Результат студента {student_name} за тест "{test_title}" сброшен. Студент может пройти тест заново.')
 
-    # Возвращаем на страницу, с которой пришли
-    next_url = request.GET.get('next')
-    if next_url:
-        return redirect(next_url)
+    # Перенаправляем на общую страницу результатов (результат удалён, детальная страница не существует)
     return redirect('teacher_results')
 
 

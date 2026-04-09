@@ -762,6 +762,7 @@ a:hover {
 
 .btn-danger:hover {
     background-color: #dc2626;
+    color: var(--text-inverse);
 }
 
 .btn-sm {

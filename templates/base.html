@@ -80,7 +80,7 @@
                                 </svg>
                                 <span>Создать тест</span>
                             </a>
-                            <a href="{% url 'teacher_results' %}" class="nav-item {% if request.resolver_match.url_name == 'teacher_results' %}active{% endif %}">
+                            <a href="{% url 'teacher_results' %}" class="nav-item {% if 'teacher_results' in request.resolver_match.url_name %}active{% endif %}">
                                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="20" x2="18" y2="10"></line>
                                     <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -102,7 +102,7 @@
                                 </svg>
                                 <span>Предметы</span>
                             </a>
-                            <a href="{% url 'student_results' %}" class="nav-item {% if request.resolver_match.url_name == 'student_results' %}active{% endif %}">
+                            <a href="{% url 'student_results' %}" class="nav-item {% if 'student_results' in request.resolver_match.url_name %}active{% endif %}">
                                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <line x1="18" y1="20" x2="18" y2="10"></line>
                                     <line x1="12" y1="20" x2="12" y2="4"></line>
