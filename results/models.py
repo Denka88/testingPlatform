@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class Result(models.Model):
@@ -74,6 +75,16 @@ class Result(models.Model):
         if self.completed_at and self.started_at:
             return int((self.completed_at - self.started_at).total_seconds())
         return None
+
+    @property
+    def remaining_seconds(self):
+        """Возвращает оставшееся время для незавершённой попытки."""
+        if self.completed_at or not self.started_at or not self.test_id:
+            return None
+
+        time_limit_seconds = (self.test.time_limit or 0) * 60
+        elapsed_seconds = int((timezone.now() - self.started_at).total_seconds())
+        return max(0, time_limit_seconds - elapsed_seconds)
 
     @property
     def percentage(self):

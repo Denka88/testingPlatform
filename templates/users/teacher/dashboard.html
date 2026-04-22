@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load user_tags %}
 
 {% block title %}Панель преподавателя{% endblock %}
 
@@ -48,25 +49,35 @@
                 <a href="{% url 'teacher_results' %}" class="btn btn-secondary btn-sm">Все</a>
             </div>
             <div class="card-body">
-                {% if recent_results %}
-                <div class="results-list">
+                <div class="results-list" id="recentResultsList" {% if not recent_results %}style="display:none"{% endif %}>
                     {% for result in recent_results %}
-                    <a href="{% url 'test_result_detail' result.id %}" class="result-item">
+                    <a href="{% url 'test_result_detail' result.id %}" class="result-item"
+                       data-live-result-id="{{ result.id }}"
+                       data-live-kind="dashboard"
+                       {% if not result.completed_at %}data-remaining-seconds="{{ result.remaining_seconds|default_if_none:'' }}"{% endif %}>
                         <div class="result-student">
                             <span class="result-name">{{ result.student.last_name }} {{ result.student.first_name }}</span>
                             <span class="result-test">{{ result.test.title }}</span>
                         </div>
-                        <div class="result-grade grade-{{ result.grade }}">
+                        {% if result.completed_at and result.grade %}
+                        <div class="result-grade grade-{{ result.grade }}" data-result-grade>
                             {{ result.grade }}
                         </div>
+                        {% elif not result.completed_at %}
+                        <div class="result-progress" data-result-grade>
+                            {{ result.remaining_seconds|format_timer }}
+                        </div>
+                        {% else %}
+                        <div class="result-progress" data-result-grade>
+                            —
+                        </div>
+                        {% endif %}
                     </a>
                     {% endfor %}
                 </div>
-                {% else %}
-                <div class="empty-state">
+                <div class="empty-state" id="recentResultsEmpty" {% if recent_results %}style="display:none"{% endif %}>
                     <p class="empty-state-text">Пока нет результатов</p>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -165,10 +176,156 @@
         font-size: 1.125rem;
     }
 
+    .result-progress {
+        color: var(--text-primary);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
     @media (max-width: 768px) {
         .dashboard-grid {
             gap: 16px;
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const liveUrl = '{% url "teacher_results_live_status" %}';
+        const recentResultsUrl = '{% url "teacher_dashboard_recent_results" %}';
+        const listEl = document.getElementById('recentResultsList');
+        const emptyEl = document.getElementById('recentResultsEmpty');
+
+        function formatTimer(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function getItems() {
+            return Array.from(document.querySelectorAll('[data-live-kind="dashboard"]'));
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function renderResults(results) {
+            if (!results.length) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+                emptyEl.style.display = '';
+                return;
+            }
+
+            emptyEl.style.display = 'none';
+            listEl.style.display = '';
+            listEl.innerHTML = results.map((result) => {
+                const completedWithoutGrade = result.completed && !result.grade;
+                const gradeMarkup = result.completed && result.grade
+                    ? `<div class="result-grade grade-${result.grade}" data-result-grade>${result.grade}</div>`
+                    : `<div class="result-progress" data-result-grade>${completedWithoutGrade ? '—' : formatTimer(result.remaining_seconds ?? 0)}</div>`;
+                const remainingAttr = result.completed ? '' : ` data-remaining-seconds="${Math.max(0, Number(result.remaining_seconds) || 0)}"`;
+
+                return `
+                    <a href="${escapeHtml(result.detail_url)}" class="result-item"
+                       data-live-result-id="${result.id}"
+                       data-live-kind="dashboard"${remainingAttr}>
+                        <div class="result-student">
+                            <span class="result-name">${escapeHtml(result.student_name)}</span>
+                            <span class="result-test">${escapeHtml(result.test_title)}</span>
+                        </div>
+                        ${gradeMarkup}
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function setActiveState(item, remainingSeconds) {
+            item.dataset.remainingSeconds = String(Math.max(0, remainingSeconds));
+            const gradeEl = item.querySelector('[data-result-grade]');
+            if (!gradeEl) return;
+            gradeEl.className = 'result-progress';
+            gradeEl.textContent = formatTimer(remainingSeconds);
+        }
+
+        function setCompletedState(item, result) {
+            item.dataset.remainingSeconds = '';
+            const gradeEl = item.querySelector('[data-result-grade]');
+            if (!gradeEl) return;
+
+            if (result.grade) {
+                gradeEl.className = `result-grade grade-${result.grade}`;
+                gradeEl.textContent = result.grade;
+            } else {
+                gradeEl.className = 'result-progress';
+                gradeEl.textContent = '—';
+            }
+        }
+
+        function tickTimers() {
+            getItems().forEach((item) => {
+                const remaining = Number.parseInt(item.dataset.remainingSeconds || '', 10);
+                if (Number.isNaN(remaining)) return;
+                setActiveState(item, remaining > 0 ? remaining - 1 : 0);
+            });
+        }
+
+        async function refreshStatuses() {
+            const items = getItems();
+            if (!items.length) return;
+
+            const params = new URLSearchParams();
+            items.forEach((item) => params.append('result_ids', item.dataset.liveResultId));
+
+            try {
+                const response = await fetch(`${liveUrl}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                payload.results.forEach((result) => {
+                    const item = items.find((card) => card.dataset.liveResultId === String(result.id));
+                    if (!item) return;
+                    if (result.completed) {
+                        setCompletedState(item, result);
+                    } else {
+                        setActiveState(item, result.remaining_seconds ?? 0);
+                    }
+                });
+            } catch (error) {
+                console.error('Live dashboard refresh failed', error);
+            }
+        }
+
+        async function refreshRecentResults() {
+            try {
+                const response = await fetch(recentResultsUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                renderResults(payload.results || []);
+                await refreshStatuses();
+            } catch (error) {
+                console.error('Recent results refresh failed', error);
+            }
+        }
+
+        tickTimers();
+        setInterval(tickTimers, 1000);
+        refreshRecentResults();
+        setInterval(refreshRecentResults, 5000);
+    })();
+</script>
 {% endblock %}

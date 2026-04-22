@@ -1,0 +1,79 @@
+{% for item in questions_with_answers %}
+<div class="answer-review">
+    <div class="answer-review-header">
+        <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
+        {% if user.is_teacher or result.test.show_correct_answers %}
+        <span class="answer-review-status {% if item.student_answer and item.student_answer.is_correct %}correct{% elif item.student_answer %}incorrect{% endif %}">
+            {% if item.student_answer %}
+                {% if item.student_answer.is_correct %}
+                    <i class="fa-solid fa-check"></i> Правильно
+                {% else %}
+                    <i class="fa-solid fa-xmark"></i> Неправильно
+                {% endif %}
+            {% else %}
+                <i class="fa-solid fa-minus"></i> Нет ответа
+            {% endif %}
+        </span>
+        {% endif %}
+    </div>
+
+    <p class="answer-review-question">{{ item.question.text }}</p>
+
+    <div class="answer-review-answers">
+        <div class="review-answers-section">
+            <span class="review-section-label">Выбранный ответ:</span>
+            <div class="review-answers-list">
+                {% if item.student_answer %}
+                    {% for answer in item.student_answer.answers.all %}
+                        {% if user.is_teacher or result.test.show_correct_answers %}
+                            {% if answer.is_correct %}
+                                <span class="review-answer-tag correct selected">
+                                    <i class="fa-solid fa-check"></i> {{ answer.text }}
+                                </span>
+                            {% else %}
+                                <span class="review-answer-tag incorrect selected">
+                                    <i class="fa-solid fa-xmark"></i> {{ answer.text }}
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="review-answer-tag selected">
+                                {{ answer.text }}
+                            </span>
+                        {% endif %}
+                    {% empty %}
+                        <span class="review-answer-tag no-answer">Ответ не дан</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="review-answer-tag no-answer">Ответ не дан</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user.is_teacher or result.test.show_correct_answers %}
+        <div class="review-answers-section">
+            <span class="review-section-label">Правильный ответ:</span>
+            <div class="review-answers-list">
+                {% for correct_answer in item.question.answers.all %}
+                    {% if correct_answer.is_correct %}
+                        <span class="review-answer-tag correct">
+                            {{ correct_answer.text }}
+                        </span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="review-answers-section">
+            <span class="review-section-label"></span>
+            <p class="answers-hidden-message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Преподаватель запретил просмотр правильных ответов
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}

@@ -6,7 +6,10 @@
 {% block topbar_title %}Результат тестирования{% endblock %}
 
 {% block content %}
-<div class="result-detail-container">
+<div class="result-detail-container"
+     data-live-result-id="{{ result.id }}"
+     data-live-kind="detail"
+     {% if not result.completed_at %}data-remaining-seconds="{{ result.remaining_seconds|default_if_none:'' }}"{% endif %}>
     <div class="result-header">
         <button onclick="history.back()" class="btn btn-secondary btn-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -23,9 +26,13 @@
                 <h1 class="result-title">{{ result.test.title }}</h1>
                 <p class="result-subject">{{ result.test.subject.name }}</p>
             </div>
-            <div class="result-grade-main grade-{{ result.grade }}">
-                {{ result.grade }}
-            </div>
+            {% if result.completed_at and result.grade %}
+                <div class="result-grade-main grade-{{ result.grade }}" data-result-main-grade>{{ result.grade }}</div>
+            {% elif not result.completed_at %}
+                <div class="result-grade-main result-grade-timer" data-result-main-grade>{{ result.remaining_seconds|format_timer }}</div>
+            {% else %}
+                <div class="result-grade-main result-grade-timer" data-result-main-grade>—</div>
+            {% endif %}
         </div>
 
         <div class="result-stats-grid">
@@ -35,22 +42,20 @@
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Дата</span>
-                <span class="result-stat-value">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
+                <span class="result-stat-value" data-detail-date>{% if result.completed_at %}{{ result.completed_at|date:"d.m.Y H:i" }}{% else %}В процессе{% endif %}</span>
             </div>
-            {% if result.duration_seconds %}
             <div class="result-stat-card">
                 <span class="result-stat-label">Время прохождения</span>
-                <span class="result-stat-value">{{ result.duration_seconds|format_duration }}</span>
+                <span class="result-stat-value" data-detail-duration>{% if result.completed_at %}{{ result.duration_seconds|format_duration }}{% else %}{{ result.remaining_seconds|format_timer }}{% endif %}</span>
             </div>
-            {% endif %}
             <div class="result-stat-card">
                 <span class="result-stat-label">Правильно</span>
-                <span class="result-stat-value">{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
+                <span class="result-stat-value" data-result-answers>{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Оценка</span>
                 {% if result.grade %}
-                    <span class="result-stat-value grade-value grade-{{ result.grade }}">{{ result.grade }}</span>
+                    <span class="result-stat-value grade-value grade-{{ result.grade }}" data-detail-grade>{{ result.grade }}</span>
                 {% else %}
                     <span class="result-stat-value">—</span>
                 {% endif %}
@@ -68,7 +73,7 @@
         <div class="card-header">
             <h2 class="card-title">Ответы</h2>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="resultAnswersBody" data-answers-loaded="{% if result.completed_at %}true{% else %}false{% endif %}">
             {% for item in questions_with_answers %}
             <div class="answer-review">
                 <div class="answer-review-header">
@@ -265,6 +270,21 @@
         color: var(--text-primary);
     }
 
+    .result-grade-main {
+        min-width: 88px;
+        padding: 18px 20px;
+        border-radius: var(--border-radius);
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        background-color: var(--bg-surface-secondary);
+    }
+
+    .result-grade-timer {
+        color: var(--text-primary);
+    }
+
     .answer-review {
         padding: 20px;
         background-color: var(--bg-surface-secondary);
@@ -442,6 +462,148 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    (function() {
+        const container = document.querySelector('[data-live-kind="detail"]');
+        if (!container) return;
+
+        const liveUrl = '{% url "teacher_results_live_status" %}';
+        const answersFragmentUrl = '{% url "test_result_answers_fragment" result.id %}';
+        const answersBody = document.getElementById('resultAnswersBody');
+
+        function formatTimer(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function setActiveState(remainingSeconds) {
+            container.dataset.remainingSeconds = String(Math.max(0, remainingSeconds));
+
+            const mainGradeEl = container.querySelector('[data-result-main-grade]');
+            const dateEl = container.querySelector('[data-detail-date]');
+            const durationEl = container.querySelector('[data-detail-duration]');
+            const detailGradeEl = container.querySelector('[data-detail-grade]');
+
+            if (mainGradeEl) {
+                mainGradeEl.className = 'result-grade-main result-grade-timer';
+                mainGradeEl.textContent = formatTimer(remainingSeconds);
+            }
+
+            if (dateEl) {
+                dateEl.textContent = 'В процессе';
+            }
+
+            if (durationEl) {
+                durationEl.textContent = formatTimer(remainingSeconds);
+            }
+
+            if (detailGradeEl) {
+                detailGradeEl.className = 'result-stat-value';
+                detailGradeEl.textContent = formatTimer(remainingSeconds);
+            }
+        }
+
+        function setCompletedState(result) {
+            container.dataset.remainingSeconds = '';
+
+            const mainGradeEl = container.querySelector('[data-result-main-grade]');
+            const dateEl = container.querySelector('[data-detail-date]');
+            const durationEl = container.querySelector('[data-detail-duration]');
+            const answersEl = container.querySelector('[data-result-answers]');
+            const detailGradeEl = container.querySelector('[data-detail-grade]');
+
+            if (mainGradeEl) {
+                if (result.grade) {
+                    mainGradeEl.className = `result-grade-main grade-${result.grade}`;
+                    mainGradeEl.textContent = result.grade;
+                } else {
+                    mainGradeEl.className = 'result-grade-main result-grade-timer';
+                    mainGradeEl.textContent = '—';
+                }
+            }
+
+            if (dateEl) {
+                dateEl.textContent = result.completed_at_display || '—';
+            }
+
+            if (durationEl) {
+                durationEl.textContent = result.duration_seconds == null ? '—' : `${Math.floor(result.duration_seconds / 60)} мин ${result.duration_seconds % 60} сек`;
+            }
+
+            if (answersEl) {
+                answersEl.textContent = `${result.correct_answers_count} / ${result.total_questions}`;
+            }
+
+            if (detailGradeEl) {
+                if (result.grade) {
+                    detailGradeEl.className = `result-stat-value grade-value grade-${result.grade}`;
+                    detailGradeEl.textContent = result.grade;
+                } else {
+                    detailGradeEl.className = 'result-stat-value';
+                    detailGradeEl.textContent = '—';
+                }
+            }
+
+            if (answersBody && answersBody.dataset.answersLoaded !== 'true') {
+                refreshAnswers();
+            }
+        }
+
+        async function refreshAnswers() {
+            if (!answersBody) return;
+
+            try {
+                const response = await fetch(answersFragmentUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                answersBody.innerHTML = payload.html || '';
+                answersBody.dataset.answersLoaded = 'true';
+            } catch (error) {
+                console.error('Live answers refresh failed', error);
+            }
+        }
+
+        function tickTimer() {
+            const remaining = Number.parseInt(container.dataset.remainingSeconds || '', 10);
+            if (Number.isNaN(remaining)) return;
+            setActiveState(remaining > 0 ? remaining - 1 : 0);
+        }
+
+        async function refreshStatus() {
+            const params = new URLSearchParams();
+            params.append('result_ids', container.dataset.liveResultId);
+
+            try {
+                const response = await fetch(`${liveUrl}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                const result = payload.results[0];
+                if (!result) return;
+
+                if (result.completed) {
+                    setCompletedState(result);
+                } else {
+                    setActiveState(result.remaining_seconds ?? 0);
+                }
+            } catch (error) {
+                console.error('Live detail refresh failed', error);
+            }
+        }
+
+        tickTimer();
+        setInterval(tickTimer, 1000);
+        refreshStatus();
+        setInterval(refreshStatus, 5000);
+    })();
+</script>
 <script>
 {% if user.is_teacher %}
 (function() {

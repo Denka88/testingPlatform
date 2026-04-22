@@ -15,6 +15,8 @@ urlpatterns = [
     path('test/<int:test_id>/take/', views.test_take, name='test_take'),
     path('test/submit/<int:result_id>/', views.test_submit, name='test_submit'),
     path('test/result/<int:result_id>/', views.test_result_detail, name='test_result_detail'),
+    path('test/result/<int:result_id>/answers-fragment/', views.test_result_answers_fragment, name='test_result_answers_fragment'),
+    path('teacher/results/live-status/', views.teacher_results_live_status, name='teacher_results_live_status'),
 
     # Teacher result management
     path('teacher/result/<int:result_id>/grade/', views.test_result_update_grade, name='test_result_update_grade'),

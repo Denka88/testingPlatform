@@ -5,7 +5,7 @@ register = template.Library()
 
 @register.simple_tag
 def has_group_permission(user, group):
-    """Проверяет, имеет ли пользователь доступ к группе"""
+    """Проверяет, имеет ли пользователь доступ к группе."""
     if user.is_admin:
         return True
     if user.is_teacher:
@@ -17,7 +17,7 @@ def has_group_permission(user, group):
 
 @register.simple_tag
 def can_access_test(user, test):
-    """Проверяет, имеет ли пользователь доступ к тесту"""
+    """Проверяет, имеет ли пользователь доступ к тесту."""
     if user.is_admin:
         return True
     if user.is_teacher:
@@ -31,13 +31,13 @@ def can_access_test(user, test):
 
 @register.filter
 def get_item(dictionary, key):
-    """Получение элемента из словаря по ключу"""
+    """Получение элемента из словаря по ключу."""
     return dictionary.get(key)
 
 
 @register.filter
 def dict_lookup(dictionary, key):
-    """Получение элемента из словаря по ключу (альтернативное имя)"""
+    """Получение элемента из словаря по ключу."""
     if dictionary is None:
         return None
     return dictionary.get(key)
@@ -45,7 +45,7 @@ def dict_lookup(dictionary, key):
 
 @register.filter
 def multiply(value, arg):
-    """Умножение двух значений"""
+    """Умножение двух значений."""
     try:
         return float(value) * float(arg)
     except (ValueError, TypeError):
@@ -54,7 +54,7 @@ def multiply(value, arg):
 
 @register.filter
 def divide(value, arg):
-    """Деление двух значений"""
+    """Деление двух значений."""
     try:
         if float(arg) == 0:
             return 0
@@ -65,7 +65,7 @@ def divide(value, arg):
 
 @register.filter
 def format_duration(seconds):
-    """Форматирует длительность в секундах в строку 'X мин Y сек'"""
+    """Форматирует длительность в секундах в строку 'X мин Y сек'."""
     if seconds is None:
         return ''
     try:
@@ -79,7 +79,21 @@ def format_duration(seconds):
         return ''
 
 
+@register.filter
+def format_timer(seconds):
+    """Форматирует секунды в строку MM:SS."""
+    if seconds is None:
+        return ''
+    try:
+        seconds = max(0, int(seconds))
+        minutes = seconds // 60
+        secs = seconds % 60
+        return f"{minutes:02d}:{secs:02d}"
+    except (ValueError, TypeError):
+        return ''
+
+
 @register.simple_tag
 def is_answer_selected(answer, selected_answers):
-    """Проверяет, выбран ли ответ студентом"""
+    """Проверяет, выбран ли ответ студентом."""
     return answer.id in [a.id for a in selected_answers.all()]

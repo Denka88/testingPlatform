@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load user_tags %}
 
 {% block title %}Результаты{% endblock %}
 
@@ -27,7 +28,9 @@
             <div class="table-container">
                 <table class="table">
                     <thead>
-                        <tr>
+                        <tr data-live-result-id="{{ result.id }}"
+                            data-live-kind="results"
+                            {% if not result.completed_at %}data-remaining-seconds="{{ result.remaining_seconds|default_if_none:'' }}"{% endif %}>
                             <th>Студент</th>
                             <th>Группа</th>
                             <th>Тест</th>
@@ -61,13 +64,15 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {{ result.correct_answers_count }} / {{ result.total_questions }}
+                                <span class="answers-count" data-result-answers>{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
                             </td>
                             <td>
                                 {% if result.grade %}
-                                    <span class="grade-badge grade-{{ result.grade }}">
+                                    <span class="grade-badge grade-{{ result.grade }}" data-result-grade>
                                         {{ result.grade }}
                                     </span>
+                                {% elif not result.completed_at %}
+                                    <span class="answers-count" data-result-grade>{{ result.remaining_seconds|format_timer }}</span>
                                 {% else %}
                                     —
                                 {% endif %}
@@ -119,9 +124,110 @@
         gap: 8px;
     }
 
+    .answers-count {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
     .badge-draft {
         background-color: var(--text-muted);
         color: white;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const rows = Array.from(document.querySelectorAll('[data-live-kind="results"]'));
+        if (!rows.length) return;
+
+        const liveUrl = '{% url "teacher_results_live_status" %}';
+
+        function formatTimer(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function setActiveState(row, remainingSeconds) {
+            row.dataset.remainingSeconds = String(Math.max(0, remainingSeconds));
+            const dateCell = row.children[3];
+            const gradeEl = row.querySelector('[data-result-grade]');
+
+            if (dateCell) {
+                dateCell.innerHTML = '<span class="badge badge-draft">В процессе</span>';
+            }
+
+            if (gradeEl) {
+                gradeEl.className = 'answers-count';
+                gradeEl.textContent = formatTimer(remainingSeconds);
+            }
+        }
+
+        function setCompletedState(row, result) {
+            row.dataset.remainingSeconds = '';
+            const dateCell = row.children[3];
+            const answersEl = row.querySelector('[data-result-answers]');
+            const gradeEl = row.querySelector('[data-result-grade]');
+
+            if (dateCell) {
+                dateCell.textContent = result.completed_at_display || '—';
+            }
+
+            if (answersEl) {
+                answersEl.textContent = `${result.correct_answers_count} / ${result.total_questions}`;
+            }
+
+            if (gradeEl) {
+                if (result.grade) {
+                    gradeEl.className = `grade-badge grade-${result.grade}`;
+                    gradeEl.textContent = result.grade;
+                } else {
+                    gradeEl.className = '';
+                    gradeEl.textContent = '—';
+                }
+            }
+        }
+
+        function tickTimers() {
+            rows.forEach((row) => {
+                const remaining = Number.parseInt(row.dataset.remainingSeconds || '', 10);
+                if (Number.isNaN(remaining)) return;
+                setActiveState(row, remaining > 0 ? remaining - 1 : 0);
+            });
+        }
+
+        async function refreshStatuses() {
+            const params = new URLSearchParams();
+            rows.forEach((row) => params.append('result_ids', row.dataset.liveResultId));
+
+            try {
+                const response = await fetch(`${liveUrl}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                payload.results.forEach((result) => {
+                    const row = rows.find((item) => item.dataset.liveResultId === String(result.id));
+                    if (!row) return;
+                    if (result.completed) {
+                        setCompletedState(row, result);
+                    } else {
+                        setActiveState(row, result.remaining_seconds ?? 0);
+                    }
+                });
+            } catch (error) {
+                console.error('Live results refresh failed', error);
+            }
+        }
+
+        tickTimers();
+        setInterval(tickTimers, 1000);
+        refreshStatuses();
+        setInterval(refreshStatuses, 5000);
+    })();
+</script>
 {% endblock %}

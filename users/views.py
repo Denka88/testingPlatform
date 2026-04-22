@@ -4,6 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
+from django.http import JsonResponse
+from django.urls import reverse
+from django.utils import timezone
 from .models import Profile, UserRole
 from .mixins import TeacherRequiredMixin, StudentRequiredMixin
 
@@ -84,6 +87,35 @@ def teacher_dashboard(request):
         'recent_results': recent_results,
     }
     return render(request, 'users/teacher/dashboard.html', context)
+
+
+@login_required
+def teacher_dashboard_recent_results(request):
+    """Живое обновление последних результатов преподавателя."""
+    from tests.models import Test
+    from results.models import Result
+
+    if not request.user.is_teacher:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    tests = Test.objects.filter(created_by=request.user)
+    recent_results = Result.objects.filter(
+        test__in=tests
+    ).select_related('student', 'test').order_by('-completed_at', '-started_at')[:10]
+
+    payload = []
+    for result in recent_results:
+        payload.append({
+            'id': result.id,
+            'student_name': f'{result.student.last_name} {result.student.first_name}'.strip(),
+            'test_title': result.test.title,
+            'detail_url': reverse('test_result_detail', args=[result.id]),
+            'completed': bool(result.completed_at),
+            'grade': result.grade,
+            'remaining_seconds': result.remaining_seconds,
+        })
+
+    return JsonResponse({'results': payload})
 
 
 @login_required
@@ -367,6 +399,82 @@ def teacher_results_students(request, subject_id, group_id, test_id):
         'not_passed_count': not_passed_count,
     }
     return render(request, 'users/teacher/results_students.html', context)
+
+
+@login_required
+def teacher_results_students_live_status(request, subject_id, group_id, test_id):
+    """Живой статус журнала результатов студентов по тесту."""
+    from groups.models import Subject, Group
+    from tests.models import Test
+    from results.models import Result
+
+    if not request.user.is_teacher:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
+    group = get_object_or_404(Group, id=group_id, subjects=subject)
+    test = get_object_or_404(Test, id=test_id, subject=subject, created_by=request.user, groups=group)
+
+    students = User.objects.filter(
+        profile__group=group,
+        role='student'
+    ).select_related('profile')
+
+    search = request.GET.get('search', '')
+    grade_filter = request.GET.get('grade', '')
+
+    if search:
+        students = students.filter(
+            Q(last_name__icontains=search) |
+            Q(first_name__icontains=search)
+        )
+
+    results = Result.objects.filter(
+        test=test,
+        student__profile__group=group
+    ).select_related('student')
+
+    results_by_student = {result.student_id: result for result in results}
+
+    if grade_filter:
+        if grade_filter == 'no_grade':
+            students = students.filter(id__in=[r.student_id for r in results if not r.grade])
+        else:
+            students = students.filter(id__in=[r.student_id for r in results if r.grade and str(r.grade) == grade_filter])
+
+    student_ids = list(students.values_list('id', flat=True))
+    filtered_results = [results_by_student[student_id] for student_id in student_ids if student_id in results_by_student]
+
+    payload = []
+    for student_id in student_ids:
+        result = results_by_student.get(student_id)
+        if result is None:
+            payload.append({
+                'student_id': student_id,
+                'has_result': False,
+            })
+            continue
+
+        payload.append({
+            'student_id': student_id,
+            'has_result': True,
+            'result_id': result.id,
+            'completed': bool(result.completed_at),
+            'completed_at_display': timezone.localtime(result.completed_at).strftime('%d.%m.%Y %H:%M') if result.completed_at else '',
+            'grade': result.grade,
+            'correct_answers_count': result.correct_answers_count,
+            'total_questions': result.total_questions,
+            'remaining_seconds': result.remaining_seconds,
+            'detail_url': reverse('test_result_detail', args=[result.id]),
+            'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={request.path}",
+        })
+
+    return JsonResponse({
+        'results': payload,
+        'total_students': len(student_ids),
+        'passed_count': len(filtered_results),
+        'not_passed_count': len(student_ids) - len(filtered_results),
+    })
 
 
 @login_required

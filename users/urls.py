@@ -15,6 +15,7 @@ urlpatterns = [
 
     # Teacher
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('teacher/dashboard/recent-results/', views.teacher_dashboard_recent_results, name='teacher_dashboard_recent_results'),
     path('teacher/groups/', views.teacher_groups, name='teacher_groups'),
     path('teacher/subjects/', views.teacher_subjects, name='teacher_subjects'),
     path('teacher/tests/', views.teacher_tests, name='teacher_tests'),
@@ -25,6 +26,7 @@ urlpatterns = [
     path('teacher/results/subjects/<int:subject_id>/groups/', views.teacher_results_groups, name='teacher_results_groups'),
     path('teacher/results/subjects/<int:subject_id>/groups/<int:group_id>/tests/', views.teacher_results_tests, name='teacher_results_tests'),
     path('teacher/results/subjects/<int:subject_id>/groups/<int:group_id>/tests/<int:test_id>/students/', views.teacher_results_students, name='teacher_results_students'),
+    path('teacher/results/subjects/<int:subject_id>/groups/<int:group_id>/tests/<int:test_id>/students/live-status/', views.teacher_results_students_live_status, name='teacher_results_students_live_status'),
 
     # Student
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),

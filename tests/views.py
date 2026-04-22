@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from datetime import timedelta
@@ -11,6 +13,21 @@ import random
 from tests.models import Test, Question, Answer
 from results.models import Result, StudentAnswer
 from users.mixins import StaffOrTeacherRequiredMixin
+
+
+def build_questions_with_answers(result):
+    """Собирает вопросы теста вместе с ответами студента."""
+    all_questions = result.test.questions.prefetch_related('answers').all().order_by('id')
+    student_answers_dict = {sa.question_id: sa for sa in result.student_answers.all()}
+
+    questions_with_answers = []
+    for question in all_questions:
+        questions_with_answers.append({
+            'question': question,
+            'student_answer': student_answers_dict.get(question.id),
+        })
+
+    return questions_with_answers
 
 
 # ==================== Teacher Test Management ====================
@@ -445,7 +462,6 @@ def test_result_detail(request, result_id):
         if not Test.objects.filter(id=result.test.id, created_by=request.user).exists():
             messages.error(request, 'У вас нет доступа к этому результату')
             return redirect('dashboard')
-
     # Получаем все вопросы теста
     all_questions = result.test.questions.prefetch_related('answers').all().order_by('id')
 
@@ -466,6 +482,78 @@ def test_result_detail(request, result_id):
         'questions_with_answers': questions_with_answers,
     }
     return render(request, 'tests/result_detail.html', context)
+
+
+@login_required
+def test_result_answers_fragment(request, result_id):
+    """Возвращает HTML блока ответов для динамического обновления."""
+    result = get_object_or_404(
+        Result.objects.prefetch_related(
+            'student_answers__question__answers',
+            'student_answers__answers'
+        ),
+        id=result_id
+    )
+
+    if request.user.is_student and result.student != request.user:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    if request.user.is_teacher:
+        if not Test.objects.filter(id=result.test.id, created_by=request.user).exists():
+            return JsonResponse({'error': 'Forbidden'}, status=403)
+    elif not request.user.is_admin and not request.user.is_student:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    questions_with_answers = build_questions_with_answers(result)
+    html = render_to_string(
+        'tests/_result_answers.html',
+        {
+            'result': result,
+            'questions_with_answers': questions_with_answers,
+            'user': request.user,
+        },
+        request=request,
+    )
+    return JsonResponse({'html': html})
+
+
+@login_required
+def teacher_results_live_status(request):
+    """Возвращает актуальный статус результатов для живого обновления."""
+    if not request.user.is_teacher and not request.user.is_admin and not request.user.is_student:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    result_ids = []
+    for raw_result_id in request.GET.getlist('result_ids'):
+        try:
+            result_ids.append(int(raw_result_id))
+        except (TypeError, ValueError):
+            continue
+
+    if not result_ids:
+        return JsonResponse({'results': []})
+
+    results = Result.objects.filter(id__in=result_ids).select_related('test', 'student')
+
+    if request.user.is_teacher:
+        results = results.filter(test__created_by=request.user)
+    elif request.user.is_student:
+        results = results.filter(student=request.user)
+
+    payload = []
+    for result in results:
+        payload.append({
+            'id': result.id,
+            'completed': bool(result.completed_at),
+            'completed_at_display': timezone.localtime(result.completed_at).strftime('%d.%m.%Y %H:%M') if result.completed_at else '',
+            'grade': result.grade,
+            'correct_answers_count': result.correct_answers_count,
+            'total_questions': result.total_questions,
+            'remaining_seconds': result.remaining_seconds,
+            'duration_seconds': result.duration_seconds,
+        })
+
+    return JsonResponse({'results': payload})
 
 
 @login_required
@@ -505,6 +593,19 @@ def test_result_reset(request, result_id):
             return redirect('dashboard')
 
     # Сохраняем данные для сообщения
+    next_url = request.GET.get('next')
+    redirect_url = next_url
+
+    if not redirect_url:
+        student_group_id = getattr(getattr(result.student, 'profile', None), 'group_id', None)
+        if student_group_id:
+            redirect_url = reverse(
+                'teacher_results_students',
+                args=[result.test.subject_id, student_group_id, result.test_id]
+            )
+        else:
+            redirect_url = reverse('teacher_results')
+
     student_name = result.student.last_name
     test_title = result.test.title
 
@@ -514,7 +615,7 @@ def test_result_reset(request, result_id):
     messages.success(request, f'Результат студента {student_name} за тест "{test_title}" сброшен. Студент может пройти тест заново.')
 
     # Перенаправляем на общую страницу результатов (результат удалён, детальная страница не существует)
-    return redirect('teacher_results')
+    return redirect(redirect_url)
 
 
 @login_required
