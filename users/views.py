@@ -445,6 +445,8 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
     student_ids = list(students.values_list('id', flat=True))
     filtered_results = [results_by_student[student_id] for student_id in student_ids if student_id in results_by_student]
 
+    page_url = reverse('teacher_results_students', args=[subject.id, group.id, test.id])
+
     payload = []
     for student_id in student_ids:
         result = results_by_student.get(student_id)
@@ -466,7 +468,8 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
             'total_questions': result.total_questions,
             'remaining_seconds': result.remaining_seconds,
             'detail_url': reverse('test_result_detail', args=[result.id]),
-            'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={request.path}",
+            'archive_url': f"{reverse('teacher_archived_results', args=[result.student_id, result.test_id])}?next={page_url}",
+            'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={page_url}",
         })
 
     return JsonResponse({

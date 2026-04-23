@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}Архивная попытка{% endblock %}
+
+{% block topbar_title %}Архивная попытка{% endblock %}
+
+{% block content %}
+<div class="result-detail-container">
+    <div class="result-header">
+        <a href="{% url 'teacher_archived_results' archived_result.student_id archived_result.test_id %}" class="btn btn-secondary btn-sm">Назад</a>
+    </div>
+
+    <div class="result-card-main">
+        <div class="result-card-header">
+            <div class="result-main-info">
+                <h1 class="result-title">{{ archived_result.test.title }}</h1>
+                <p class="result-subject">{{ archived_result.test.subject.name }}</p>
+            </div>
+            <div class="result-grade-main {% if archived_result.grade %}grade-{{ archived_result.grade }}{% endif %}">
+                {{ archived_result.grade|default:"—" }}
+            </div>
+        </div>
+
+        <div class="result-stats-grid">
+            <div class="result-stat-card">
+                <span class="result-stat-label">Студент</span>
+                <span class="result-stat-value">{{ archived_result.student.last_name }} {{ archived_result.student.first_name }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Архивировано</span>
+                <span class="result-stat-value">{{ archived_result.archived_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Дата завершения</span>
+                <span class="result-stat-value">{% if archived_result.completed_at %}{{ archived_result.completed_at|date:"d.m.Y H:i" }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Время прохождения</span>
+                <span class="result-stat-value">{{ archived_result.duration_seconds|format_duration }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Правильно</span>
+                <span class="result-stat-value">{{ archived_result.correct_answers_count }} / {{ archived_result.total_questions }}</span>
+            </div>
+            <div class="result-stat-card">
+                <span class="result-stat-label">Переключения вкладок</span>
+                <span class="result-stat-value">{{ archived_result.tab_switches_count }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">Ответы</h2>
+        </div>
+        <div class="card-body">
+            {% for answer in archived_answers %}
+            <div class="answer-review">
+                <div class="answer-review-header">
+                    <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
+                    <span class="answer-review-status {% if answer.is_correct %}correct{% else %}incorrect{% endif %}">
+                        {% if answer.is_correct %}Правильно{% else %}Неправильно{% endif %}
+                    </span>
+                </div>
+
+                <p class="answer-review-question">{{ answer.question_text }}</p>
+
+                <div class="answer-review-answers">
+                    <div class="review-answers-section">
+                        <span class="review-section-label">Выбранный ответ:</span>
+                        <div class="review-answers-list">
+                            {% for selected_answer in answer.selected_answers %}
+                                <span class="review-answer-tag selected">{{ selected_answer }}</span>
+                            {% empty %}
+                                <span class="review-answer-tag no-answer">Ответ не дан</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="review-answers-section">
+                        <span class="review-section-label">Правильный ответ:</span>
+                        <div class="review-answers-list">
+                            {% for correct_answer in answer.correct_answers %}
+                                <span class="review-answer-tag correct">{{ correct_answer }}</span>
+                            {% empty %}
+                                <span class="review-answer-tag no-answer">Нет данных</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-detail-container {
+        width: 100%;
+    }
+
+    .result-header {
+        margin-bottom: 20px;
+    }
+
+    .result-card-main {
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius-lg);
+        border: 1px solid var(--border-color);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .result-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .result-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+
+    .result-subject {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
+    }
+
+    .result-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+    }
+
+    .result-stat-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+    }
+
+    .result-stat-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+
+    .result-stat-value {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .result-grade-main {
+        min-width: 88px;
+        padding: 18px 20px;
+        border-radius: var(--border-radius);
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        background-color: var(--bg-surface-secondary);
+    }
+
+    .answer-review {
+        padding: 20px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+        margin-bottom: 16px;
+    }
+
+    .answer-review:last-child {
+        margin-bottom: 0;
+    }
+
+    .answer-review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .answer-review-number {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .answer-review-status {
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 4px 12px;
+        border-radius: 9999px;
+    }
+
+    .answer-review-status.correct {
+        background-color: var(--color-success-bg);
+        color: var(--color-success);
+    }
+
+    .answer-review-status.incorrect {
+        background-color: var(--color-error-bg);
+        color: var(--color-error);
+    }
+
+    .answer-review-question {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 16px;
+    }
+
+    .answer-review-answers {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .review-answers-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .review-section-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+
+    .review-answers-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .review-answer-tag {
+        padding: 6px 12px;
+        background-color: var(--bg-surface);
+        border-radius: var(--border-radius);
+        font-size: 0.875rem;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .review-answer-tag.correct {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        border-color: var(--color-success);
+    }
+
+    .review-answer-tag.incorrect {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        border-color: var(--color-error);
+    }
+
+    .review-answer-tag.selected {
+        font-weight: 600;
+        border-width: 2px;
+    }
+
+    .review-answer-tag.no-answer {
+        background-color: var(--bg-surface-secondary);
+        color: var(--text-muted);
+    }
+</style>
+{% endblock %}

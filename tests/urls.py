@@ -16,6 +16,8 @@ urlpatterns = [
     path('test/submit/<int:result_id>/', views.test_submit, name='test_submit'),
     path('test/result/<int:result_id>/', views.test_result_detail, name='test_result_detail'),
     path('test/result/<int:result_id>/answers-fragment/', views.test_result_answers_fragment, name='test_result_answers_fragment'),
+    path('teacher/archive/students/<int:student_id>/tests/<int:test_id>/', views.teacher_archived_results, name='teacher_archived_results'),
+    path('teacher/archive/result/<int:archive_id>/', views.teacher_archived_result_detail, name='teacher_archived_result_detail'),
     path('teacher/results/live-status/', views.teacher_results_live_status, name='teacher_results_live_status'),
 
     # Teacher result management

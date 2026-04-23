@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Архив результатов{% endblock %}
+
+{% block topbar_title %}Архив результатов{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <div class="breadcrumb-nav mb-3">
+        <a href="{% url 'teacher_dashboard' %}" class="breadcrumb-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Главная
+        </a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_subjects' %}" class="breadcrumb-link">Результаты</a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_groups' subject.id %}" class="breadcrumb-link">{{ subject.name }}</a>
+        {% if group %}
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_tests' subject.id group.id %}" class="breadcrumb-link">{{ group.name }}</a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="{% url 'teacher_results_students' subject.id group.id test.id %}" class="breadcrumb-link">{{ test.title }}</a>
+        {% endif %}
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Предыдущие попытки</span>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h2 class="card-title">Архив попыток</h2>
+        </div>
+        <div class="card-body">
+            <p class="mb-2"><strong>Студент:</strong> {{ student.last_name }} {{ student.first_name }}</p>
+            <p class="mb-0"><strong>Тест:</strong> {{ test.title }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Архивировано</th>
+                            <th>Дата завершения</th>
+                            <th>Правильно</th>
+                            <th>Оценка</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for archived_result in archived_results %}
+                        <tr>
+                            <td>{{ archived_result.archived_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {% if archived_result.completed_at %}
+                                    {{ archived_result.completed_at|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ archived_result.correct_answers_count }} / {{ archived_result.total_questions }}</td>
+                            <td>
+                                {% if archived_result.grade %}
+                                    <span class="grade-badge grade-{{ archived_result.grade }}">{{ archived_result.grade }}</span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'teacher_archived_result_detail' archived_result.id %}" class="btn btn-secondary btn-sm">Просмотр</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">Архивных результатов пока нет</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .breadcrumb-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-link {
+        color: var(--color-primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-link:hover {
+        color: var(--color-primary-hover);
+    }
+
+    .breadcrumb-sep {
+        color: var(--text-muted);
+    }
+
+    .breadcrumb-current {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}

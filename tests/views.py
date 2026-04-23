@@ -11,7 +11,7 @@ import json
 import random
 
 from tests.models import Test, Question, Answer
-from results.models import Result, StudentAnswer
+from results.models import ArchivedResult, ArchivedStudentAnswer, Result, StudentAnswer
 from users.mixins import StaffOrTeacherRequiredMixin
 
 
@@ -28,6 +28,42 @@ def build_questions_with_answers(result):
         })
 
     return questions_with_answers
+
+
+def archive_result_snapshot(result, archived_by):
+    """Сохраняет снимок результата и ответов перед сбросом."""
+    archived_result = ArchivedResult.objects.create(
+        test=result.test,
+        student=result.student,
+        archived_by=archived_by,
+        original_result_id=result.id,
+        grade=result.grade,
+        started_at=result.started_at,
+        completed_at=result.completed_at,
+        correct_answers_count=result.correct_answers_count,
+        total_questions=result.total_questions,
+        device_info=result.device_info,
+        tab_switches_count=result.tab_switches_count,
+    )
+
+    questions_with_answers = build_questions_with_answers(result)
+    archived_answers = []
+    for index, item in enumerate(questions_with_answers, start=1):
+        student_answer = item['student_answer']
+        question = item['question']
+        archived_answers.append(
+            ArchivedStudentAnswer(
+                archived_result=archived_result,
+                question_text=question.text,
+                question_order=index,
+                selected_answers=[answer.text for answer in student_answer.answers.all()] if student_answer else [],
+                correct_answers=[answer.text for answer in question.answers.all() if answer.is_correct],
+                is_correct=student_answer.is_correct if student_answer else False,
+            )
+        )
+
+    ArchivedStudentAnswer.objects.bulk_create(archived_answers)
+    return archived_result
 
 
 # ==================== Teacher Test Management ====================
@@ -480,8 +516,71 @@ def test_result_detail(request, result_id):
     context = {
         'result': result,
         'questions_with_answers': questions_with_answers,
+        'archived_results_count': (
+            ArchivedResult.objects.filter(student_id=result.student_id, test_id=result.test_id).count()
+            if request.user.is_teacher or request.user.is_admin else 0
+        ),
+        'archive_url': (
+            f"{reverse('teacher_archived_results', args=[result.student_id, result.test_id])}?next={request.path}"
+            if request.user.is_teacher else ''
+        ),
     }
     return render(request, 'tests/result_detail.html', context)
+
+
+@login_required
+def teacher_archived_results(request, student_id, test_id):
+    """Список архивных результатов студента по конкретному тесту."""
+    if not request.user.is_teacher and not request.user.is_admin:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    archived_results = ArchivedResult.objects.filter(
+        student_id=student_id,
+        test_id=test_id,
+    ).select_related('student', 'test', 'test__subject', 'archived_by')
+
+    archived_result = archived_results.first()
+    next_url = request.GET.get('next') or request.META.get('HTTP_REFERER')
+    if archived_result is None:
+        messages.info(request, 'Архивных результатов пока нет')
+        return redirect(next_url or 'teacher_results')
+
+    if request.user.is_teacher and archived_result.test.created_by != request.user:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    context = {
+        'student': archived_result.student,
+        'test': archived_result.test,
+        'subject': archived_result.test.subject,
+        'group': getattr(archived_result.student, 'profile', None).group if getattr(archived_result.student, 'profile', None) else None,
+        'archived_results': archived_results,
+    }
+    return render(request, 'tests/teacher/archived_results.html', context)
+
+
+@login_required
+def teacher_archived_result_detail(request, archive_id):
+    """Детальный просмотр архивной попытки."""
+    if not request.user.is_teacher and not request.user.is_admin:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    archived_result = get_object_or_404(
+        ArchivedResult.objects.prefetch_related('archived_answers').select_related('student', 'test', 'test__subject', 'archived_by'),
+        id=archive_id,
+    )
+
+    if request.user.is_teacher and archived_result.test.created_by != request.user:
+        messages.error(request, 'У вас нет доступа к этой странице')
+        return redirect('dashboard')
+
+    context = {
+        'archived_result': archived_result,
+        'archived_answers': archived_result.archived_answers.all(),
+    }
+    return render(request, 'tests/teacher/archived_result_detail.html', context)
 
 
 @login_required
@@ -610,6 +709,7 @@ def test_result_reset(request, result_id):
     test_title = result.test.title
 
     # Полностью удаляем результат (StudentAnswer удалятся по CASCADE)
+    archive_result_snapshot(result, request.user)
     result.delete()
 
     messages.success(request, f'Результат студента {student_name} за тест "{test_title}" сброшен. Студент может пройти тест заново.')
