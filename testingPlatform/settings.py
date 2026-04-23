@@ -136,6 +136,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
 
 # Media files (avatars, test images, etc.)
 MEDIA_URL = 'media/'

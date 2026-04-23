@@ -882,20 +882,7 @@
         document.getElementById('resultStatsSection').style.display = 'flex';
         document.getElementById('resultBackBtn').style.display = '';
 
-        // Отключаем предупреждение о закрытии страницы после завершения теста
-        window.removeEventListener('beforeunload', preventClose);
     }
-
-    // Предотвращение закрытия страницы во время теста
-    function preventClose(e) {
-        const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
-        const timeRemaining = Math.max(0, limitSeconds * 60 - elapsed);
-        if (timeRemaining > 0) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    }
-    window.addEventListener('beforeunload', preventClose);
 
     // Кастомные уведомления
     function showNotification(message, type) {

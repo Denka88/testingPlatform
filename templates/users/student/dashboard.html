@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load user_tags %}
 
 {% block title %}Панель студента{% endblock %}
 
@@ -28,13 +29,23 @@
             {% if available_tests %}
             <div class="tests-grid">
                 {% for test in available_tests %}
-                <div class="test-card-small">
+                <div class="test-card-small {% if test.active_result %}test-card-small-active{% endif %}"
+                     {% if test.active_result %}data-active-test-card data-remaining-seconds="{{ test.active_result.remaining_seconds|default_if_none:0 }}"{% endif %}>
                     <div class="test-card-small-header">
                         <span class="test-subject-name">{{ test.subject.name }}</span>
+                        {% if test.active_result %}
+                        <span class="test-status-badge">В процессе</span>
+                        {% endif %}
                     </div>
                     <h3 class="test-card-small-title">{{ test.title }}</h3>
                     {% if test.description %}
                         <p class="test-card-small-desc">{{ test.description|truncatewords:10 }}</p>
+                    {% endif %}
+                    {% if test.active_result %}
+                    <div class="test-active-banner">
+                        <span class="test-active-label">Осталось времени</span>
+                        <span class="test-active-timer" data-active-timer>{{ test.active_result.remaining_seconds|format_timer }}</span>
+                    </div>
                     {% endif %}
                     <div class="test-card-small-meta">
                         <span class="test-meta">
@@ -52,8 +63,12 @@
                             {{ test.questions.count }} вопросов
                         </span>
                     </div>
-                    <a href="{% url 'test_take' test.id %}" class="btn btn-primary btn-sm w-full mt-2">
-                        Начать тестирование
+                    <a href="{% url 'test_take' test.id %}" class="btn {% if test.active_result %}btn-secondary{% else %}btn-primary{% endif %} btn-sm w-full mt-2">
+                        {% if test.active_result %}
+                            Продолжить тестирование
+                        {% else %}
+                            Начать тестирование
+                        {% endif %}
                     </a>
                 </div>
                 {% endfor %}
@@ -117,9 +132,19 @@
         border-radius: var(--border-radius-lg);
         display: flex;
         flex-direction: column;
+        border: 1px solid transparent;
+    }
+
+    .test-card-small-active {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 1px var(--color-primary-light);
     }
     
     .test-card-small-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         margin-bottom: 12px;
     }
     
@@ -127,6 +152,18 @@
         font-size: 0.8125rem;
         color: var(--color-primary);
         font-weight: 500;
+    }
+
+    .test-status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background-color: var(--color-primary);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
     }
     
     .test-card-small-title {
@@ -141,6 +178,31 @@
         color: var(--text-secondary);
         margin-bottom: 16px;
         flex: 1;
+    }
+
+    .test-active-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border-radius: var(--border-radius);
+        background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+        color: white;
+    }
+
+    .test-active-label {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        opacity: 0.95;
+    }
+
+    .test-active-timer {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: white;
     }
     
     .test-card-small-meta {
@@ -213,4 +275,34 @@
         }
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const cards = Array.from(document.querySelectorAll('[data-active-test-card]'));
+        if (!cards.length) return;
+
+        function formatTimer(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function tick() {
+            cards.forEach((card) => {
+                const timerEl = card.querySelector('[data-active-timer]');
+                const remaining = Number.parseInt(card.dataset.remainingSeconds || '', 10);
+                if (!timerEl || Number.isNaN(remaining)) return;
+
+                const nextRemaining = remaining > 0 ? remaining - 1 : 0;
+                card.dataset.remainingSeconds = String(nextRemaining);
+                timerEl.textContent = formatTimer(nextRemaining);
+            });
+        }
+
+        setInterval(tick, 1000);
+    })();
+</script>
 {% endblock %}

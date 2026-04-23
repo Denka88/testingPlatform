@@ -298,7 +298,7 @@ def teacher_results_tests(request, subject_id, group_id):
         return redirect('dashboard')
 
     subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
-    group = get_object_or_404(Group, id=group_id, subjects=subject)
+    group = get_object_or_404(Group, id=group_id)
 
     # Поиск по тесту
     search = request.GET.get('search', '')
@@ -312,6 +312,10 @@ def teacher_results_tests(request, subject_id, group_id):
         created_by=request.user,
         groups=group
     ).select_related('subject').prefetch_related('groups')
+
+    if not tests.exists():
+        messages.error(request, 'Для этой группы нет тестов по выбранному предмету')
+        return redirect('teacher_results_groups', subject_id=subject.id)
 
     # Поиск по названию теста
     if search:
@@ -345,7 +349,7 @@ def teacher_results_students(request, subject_id, group_id, test_id):
         return redirect('dashboard')
 
     subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
-    group = get_object_or_404(Group, id=group_id, subjects=subject)
+    group = get_object_or_404(Group, id=group_id)
     test = get_object_or_404(Test, id=test_id, subject=subject, created_by=request.user, groups=group)
 
     # Поиск по студенту
@@ -412,7 +416,7 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
     subject = get_object_or_404(Subject, id=subject_id, teachers=request.user)
-    group = get_object_or_404(Group, id=group_id, subjects=subject)
+    group = get_object_or_404(Group, id=group_id)
     test = get_object_or_404(Test, id=test_id, subject=subject, created_by=request.user, groups=group)
 
     students = User.objects.filter(
@@ -519,11 +523,21 @@ def student_dashboard(request):
         completed_at__isnull=False
     ).values_list('test_id', flat=True)
 
+    # Активные попытки, которые можно продолжить
+    active_results = Result.objects.filter(
+        student=user,
+        completed_at__isnull=True
+    ).select_related('test')
+    active_results_by_test_id = {result.test_id: result for result in active_results}
+
     # Доступные тесты (исключая пройденные)
-    available_tests = Test.objects.filter(
+    available_tests = list(Test.objects.filter(
         groups=profile.group,
         is_published=True
-    ).exclude(id__in=completed_tests).select_related('subject')
+    ).exclude(id__in=completed_tests).select_related('subject'))
+
+    for test in available_tests:
+        test.active_result = active_results_by_test_id.get(test.id)
 
     # Результаты студента
     student_results = Result.objects.filter(
