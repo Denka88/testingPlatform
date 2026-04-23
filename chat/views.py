@@ -59,14 +59,14 @@ def contacts_view(request):
 
     # Активный чат (если выбран через ?chat=<user_id>)
     active_chat = None
-    messages = []
+    chat_messages = []
     chat_user_id = request.GET.get('chat')
     
     if chat_user_id:
         try:
             active_chat = User.objects.get(id=chat_user_id, role__in=['student', 'teacher'])
             # Получаем историю сообщений с разделителями по датам
-            messages = Message.get_conversation_with_dates(request.user, active_chat)
+            chat_messages = Message.get_conversation_with_dates(request.user, active_chat)
             # Помечаем сообщения как прочитанные
             Message.mark_as_read(request.user, active_chat)
         except User.DoesNotExist:
@@ -75,7 +75,7 @@ def contacts_view(request):
     context = {
         'contacts': contact_list,
         'active_chat': active_chat,
-        'messages': messages,
+        'chat_messages': chat_messages,
     }
     return render(request, 'chat/contacts.html', context)
 
@@ -190,11 +190,11 @@ def admin_chat_view(request, user1_id, user2_id):
     user2 = get_object_or_404(User, id=user2_id)
 
     # Получаем историю сообщений
-    messages = Message.get_conversation(user1, user2)
+    chat_messages = Message.get_conversation(user1, user2)
 
     context = {
         'user1': user1,
         'user2': user2,
-        'messages': messages,
+        'chat_messages': chat_messages,
     }
     return render(request, 'chat/admin_chat.html', context)

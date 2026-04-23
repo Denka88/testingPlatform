@@ -10,17 +10,18 @@
     <div class="card mb-3">
         <div class="card-header">
             <h2 class="card-title">Информация о тесте</h2>
-            <button onclick="history.back()" class="btn btn-secondary btn-sm">
+            <a href="{{ back_url }}" class="btn btn-secondary btn-sm">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
                 Назад
-            </button>
+            </a>
         </div>
         <div class="card-body">
             <form method="post" class="test-info-form">
                 {% csrf_token %}
+                <input type="hidden" name="next" value="{{ back_url }}">
                 
                 <div class="form-group">
                     <label class="form-label" for="title">Название</label>

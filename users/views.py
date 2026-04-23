@@ -13,6 +13,49 @@ from .mixins import TeacherRequiredMixin, StudentRequiredMixin
 User = get_user_model()
 
 
+def get_student_dashboard_tests_payload(user):
+    """Возвращает доступные и активные тесты студента для дашборда."""
+    from tests.models import Test
+    from results.models import Result
+
+    profile = getattr(user, 'profile', None)
+    if not profile or not profile.group:
+        return []
+
+    completed_tests = Result.objects.filter(
+        student=user,
+        completed_at__isnull=False
+    ).values_list('test_id', flat=True)
+
+    active_results = Result.objects.filter(
+        student=user,
+        completed_at__isnull=True
+    ).select_related('test')
+    active_results_by_test_id = {result.test_id: result for result in active_results}
+
+    available_tests = Test.objects.filter(
+        groups=profile.group,
+        is_published=True
+    ).exclude(id__in=completed_tests).select_related('subject').prefetch_related('questions')
+
+    payload = []
+    for test in available_tests:
+        active_result = active_results_by_test_id.get(test.id)
+        payload.append({
+            'id': test.id,
+            'title': test.title,
+            'description': test.description or '',
+            'subject_name': test.subject.name,
+            'time_limit': test.time_limit,
+            'question_count': test.questions.count(),
+            'take_url': reverse('test_take', args=[test.id]),
+            'is_active': bool(active_result),
+            'remaining_seconds': active_result.remaining_seconds if active_result else None,
+        })
+
+    return payload
+
+
 def index_view(request):
     """Главная страница - перенаправление по ролям"""
     if request.user.is_authenticated:
@@ -495,7 +538,6 @@ def teacher_results(request):
 @login_required
 def student_dashboard(request):
     """Панель студента"""
-    from tests.models import Test
     from results.models import Result
     from groups.models import Subject
     
@@ -517,27 +559,7 @@ def student_dashboard(request):
     # Предметы группы студента
     subjects = Subject.objects.filter(groups=profile.group)
 
-    # Получаем ID пройденных тестов
-    completed_tests = Result.objects.filter(
-        student=user,
-        completed_at__isnull=False
-    ).values_list('test_id', flat=True)
-
-    # Активные попытки, которые можно продолжить
-    active_results = Result.objects.filter(
-        student=user,
-        completed_at__isnull=True
-    ).select_related('test')
-    active_results_by_test_id = {result.test_id: result for result in active_results}
-
-    # Доступные тесты (исключая пройденные)
-    available_tests = list(Test.objects.filter(
-        groups=profile.group,
-        is_published=True
-    ).exclude(id__in=completed_tests).select_related('subject'))
-
-    for test in available_tests:
-        test.active_result = active_results_by_test_id.get(test.id)
+    available_tests_payload = get_student_dashboard_tests_payload(user)
 
     # Результаты студента
     student_results = Result.objects.filter(
@@ -547,10 +569,25 @@ def student_dashboard(request):
     context = {
         'profile': profile,
         'subjects': subjects,
-        'available_tests': available_tests,
+        'available_tests': available_tests_payload,
         'recent_results': student_results,
     }
     return render(request, 'users/student/dashboard.html', context)
+
+
+@login_required
+def student_dashboard_live_tests(request):
+    """Живое обновление доступных тестов на главной студента."""
+    if not request.user.is_student:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.group:
+        return JsonResponse({'tests': []})
+
+    return JsonResponse({
+        'tests': get_student_dashboard_tests_payload(request.user),
+    })
 
 
 @login_required

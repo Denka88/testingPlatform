@@ -25,15 +25,17 @@
             <h2 class="card-title">Доступные тесты</h2>
             <a href="{% url 'student_subjects' %}" class="btn btn-secondary btn-sm">Все предметы</a>
         </div>
-        <div class="card-body">
+        <div class="card-body" id="studentAvailableTestsBody">
             {% if available_tests %}
-            <div class="tests-grid">
+            <div class="tests-grid" id="studentAvailableTestsGrid">
                 {% for test in available_tests %}
-                <div class="test-card-small {% if test.active_result %}test-card-small-active{% endif %}"
-                     {% if test.active_result %}data-active-test-card data-remaining-seconds="{{ test.active_result.remaining_seconds|default_if_none:0 }}"{% endif %}>
+                <div class="test-card-small {% if test.is_active %}test-card-small-active{% endif %}"
+                     data-test-card
+                     data-test-id="{{ test.id }}"
+                     {% if test.is_active %}data-remaining-seconds="{{ test.remaining_seconds|default_if_none:0 }}"{% endif %}>
                     <div class="test-card-small-header">
-                        <span class="test-subject-name">{{ test.subject.name }}</span>
-                        {% if test.active_result %}
+                        <span class="test-subject-name">{{ test.subject_name }}</span>
+                        {% if test.is_active %}
                         <span class="test-status-badge">В процессе</span>
                         {% endif %}
                     </div>
@@ -41,10 +43,10 @@
                     {% if test.description %}
                         <p class="test-card-small-desc">{{ test.description|truncatewords:10 }}</p>
                     {% endif %}
-                    {% if test.active_result %}
+                    {% if test.is_active %}
                     <div class="test-active-banner">
                         <span class="test-active-label">Осталось времени</span>
-                        <span class="test-active-timer" data-active-timer>{{ test.active_result.remaining_seconds|format_timer }}</span>
+                        <span class="test-active-timer" data-active-timer>{{ test.remaining_seconds|format_timer }}</span>
                     </div>
                     {% endif %}
                     <div class="test-card-small-meta">
@@ -60,11 +62,11 @@
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
-                            {{ test.questions.count }} вопросов
+                            {{ test.question_count }} вопросов
                         </span>
                     </div>
-                    <a href="{% url 'test_take' test.id %}" class="btn {% if test.active_result %}btn-secondary{% else %}btn-primary{% endif %} btn-sm w-full mt-2">
-                        {% if test.active_result %}
+                    <a href="{{ test.take_url }}" class="btn {% if test.is_active %}btn-secondary{% else %}btn-primary{% endif %} btn-sm w-full mt-2">
+                        {% if test.is_active %}
                             Продолжить тестирование
                         {% else %}
                             Начать тестирование
@@ -74,7 +76,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <div class="empty-state">
+            <div class="empty-state" id="studentAvailableTestsEmpty">
                 <div class="empty-state-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                 <h3 class="empty-state-title">Нет доступных тестов</h3>
                 <p class="empty-state-text">В данный момент нет тестов для прохождения</p>
@@ -280,8 +282,10 @@
 {% block extra_js %}
 <script>
     (function() {
-        const cards = Array.from(document.querySelectorAll('[data-active-test-card]'));
-        if (!cards.length) return;
+        const testsBody = document.getElementById('studentAvailableTestsBody');
+        if (!testsBody) return;
+
+        const liveUrl = '{% url "student_dashboard_live_tests" %}';
 
         function formatTimer(seconds) {
             const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -290,8 +294,88 @@
             return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function truncateWords(text, limit) {
+            const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+            if (!words.length) return '';
+            if (words.length <= limit) return words.join(' ');
+            return `${words.slice(0, limit).join(' ')}...`;
+        }
+
+        function buildTestCardMarkup(test) {
+            const description = truncateWords(test.description, 10);
+            return `
+                <div class="test-card-small ${test.is_active ? 'test-card-small-active' : ''}"
+                     data-test-card
+                     data-test-id="${test.id}"
+                     ${test.is_active ? `data-remaining-seconds="${Math.max(0, Number(test.remaining_seconds) || 0)}"` : ''}>
+                    <div class="test-card-small-header">
+                        <span class="test-subject-name">${escapeHtml(test.subject_name)}</span>
+                        ${test.is_active ? '<span class="test-status-badge">В процессе</span>' : ''}
+                    </div>
+                    <h3 class="test-card-small-title">${escapeHtml(test.title)}</h3>
+                    ${description ? `<p class="test-card-small-desc">${escapeHtml(description)}</p>` : ''}
+                    ${test.is_active ? `
+                    <div class="test-active-banner">
+                        <span class="test-active-label">Осталось времени</span>
+                        <span class="test-active-timer" data-active-timer>${formatTimer(test.remaining_seconds ?? 0)}</span>
+                    </div>` : ''}
+                    <div class="test-card-small-meta">
+                        <span class="test-meta">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            ${escapeHtml(test.time_limit)} мин
+                        </span>
+                        <span class="test-meta">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            ${escapeHtml(test.question_count)} вопросов
+                        </span>
+                    </div>
+                    <a href="${escapeHtml(test.take_url)}" class="btn ${test.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm w-full mt-2">
+                        ${test.is_active ? 'Продолжить тестирование' : 'Начать тестирование'}
+                    </a>
+                </div>
+            `;
+        }
+
+        function buildEmptyMarkup() {
+            return `
+                <div class="empty-state" id="studentAvailableTestsEmpty">
+                    <div class="empty-state-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+                    <h3 class="empty-state-title">Нет доступных тестов</h3>
+                    <p class="empty-state-text">В данный момент нет тестов для прохождения</p>
+                </div>
+            `;
+        }
+
+        function renderTests(tests) {
+            if (!Array.isArray(tests) || !tests.length) {
+                testsBody.innerHTML = buildEmptyMarkup();
+                return;
+            }
+
+            testsBody.innerHTML = `
+                <div class="tests-grid" id="studentAvailableTestsGrid">
+                    ${tests.map(buildTestCardMarkup).join('')}
+                </div>
+            `;
+        }
+
         function tick() {
-            cards.forEach((card) => {
+            document.querySelectorAll('[data-test-card][data-remaining-seconds]').forEach((card) => {
                 const timerEl = card.querySelector('[data-active-timer]');
                 const remaining = Number.parseInt(card.dataset.remainingSeconds || '', 10);
                 if (!timerEl || Number.isNaN(remaining)) return;
@@ -302,7 +386,23 @@
             });
         }
 
+        async function refreshTests() {
+            try {
+                const response = await fetch(liveUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) return;
+
+                const payload = await response.json();
+                renderTests(payload.tests || []);
+            } catch (error) {
+                console.error('Student dashboard tests refresh failed', error);
+            }
+        }
+
         setInterval(tick, 1000);
+        refreshTests();
+        setInterval(refreshTests, 5000);
     })();
 </script>
 {% endblock %}

@@ -566,62 +566,95 @@ a:hover {
     padding: 24px;
 }
 
-/* ==================== Сообщения ==================== */
-.messages {
-    margin-bottom: 20px;
+/* ==================== Уведомления ==================== */
+.notification-center {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(400px, calc(100vw - 32px));
+    pointer-events: none;
 }
 
-.message {
+.notification {
+    pointer-events: auto;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 16px 24px;
+    color: white;
+    border: none;
     border-radius: var(--border-radius);
-    margin-bottom: 8px;
-    gap: 12px;
+    box-shadow: var(--shadow-lg);
+    font-weight: 500;
+    animation: notificationSlideIn 0.3s ease;
 }
 
-.message-success {
-    background-color: var(--color-success-bg);
-    color: var(--color-success);
-    border: 1px solid var(--color-success);
+.notification-success {
+    background-color: var(--color-success);
 }
 
-.message-error {
-    background-color: var(--color-error-bg);
-    color: var(--color-error);
-    border: 1px solid var(--color-error);
+.notification-error {
+    background-color: var(--color-error);
 }
 
-.message-warning {
-    background-color: var(--color-warning-bg);
-    color: var(--color-warning);
-    border: 1px solid var(--color-warning);
+.notification-warning {
+    background-color: var(--color-warning, #f59e0b);
 }
 
-.message-info {
-    background-color: var(--color-info-bg);
-    color: var(--color-info);
-    border: 1px solid var(--color-info);
+.notification-info {
+    background-color: var(--color-primary);
 }
 
-.message-close {
+.notification-content {
+    flex: 1;
+}
+
+.notification-close {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    background: transparent;
+    background: none;
     border: none;
-    color: currentColor;
+    color: inherit;
     cursor: pointer;
-    border-radius: 4px;
+    flex-shrink: 0;
+    padding: 4px;
     opacity: 0.7;
     transition: opacity 0.2s ease;
 }
 
-.message-close:hover {
+.notification-close:hover {
     opacity: 1;
+}
+
+.notification.is-closing {
+    animation: notificationSlideOut 0.3s ease forwards;
+}
+
+@keyframes notificationSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes notificationSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
 /* ==================== Карточки ==================== */

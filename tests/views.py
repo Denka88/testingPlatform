@@ -122,12 +122,14 @@ def teacher_test_edit(request, test_id):
         return redirect('dashboard')
     
     test = get_object_or_404(Test, id=test_id)
+    back_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or reverse('teacher_tests')
     
     if request.user.is_teacher and test.created_by != request.user:
         messages.error(request, 'У вас нет доступа к этому тесту')
         return redirect('teacher_tests')
     
     if request.method == 'POST':
+        back_url = request.POST.get('next') or back_url
         test.title = request.POST.get('title')
         test.description = request.POST.get('description')
         test.time_limit = int(request.POST.get('time_limit', 60))
@@ -138,9 +140,12 @@ def teacher_test_edit(request, test_id):
         test.save()
         
         messages.success(request, 'Тест обновлен')
-        return redirect('teacher_tests')
+        return redirect(f"{reverse('teacher_test_edit', args=[test.id])}?next={back_url}")
     
-    context = {'test': test}
+    context = {
+        'test': test,
+        'back_url': back_url,
+    }
     return render(request, 'tests/teacher/test_edit.html', context)
 
 

@@ -702,7 +702,7 @@
             </div>
 
             <div class="chat-messages" id="chatMessages">
-                {% for item in messages %}
+                {% for item in chat_messages %}
                     {% if item.type == 'date' %}
                         <div class="chat-date-divider">
                             <span>{{ item.date|date:"d E Y" }}</span>

@@ -232,28 +232,32 @@
 
             <!-- Контент страницы -->
             <main class="content">
-                {% if messages %}
-                    <div class="messages">
-                        {% for message in messages %}
-                            <div class="message message-{{ message.tags }}">
-                                <span>{{ message }}</span>
-                                <button class="message-close" onclick="this.parentElement.remove()">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                </button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
                 {% block content %}{% endblock %}
             </main>
         </div>
     </div>
 
+    <div class="notification-center" id="notificationCenter" aria-live="polite" aria-atomic="true"></div>
+
     <script src="{% static 'js/main.js' %}"></script>
+
+    {% if messages %}
+    <script>
+        (function() {
+            function renderServerNotifications() {
+                {% for message in messages %}
+                    showNotification('{{ message|escapejs }}', '{{ message.tags|default:"info"|escapejs }}');
+                {% endfor %}
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', renderServerNotifications, { once: true });
+            } else {
+                renderServerNotifications();
+            }
+        })();
+    </script>
+    {% endif %}
 
     {% if user.is_authenticated %}
     <script>

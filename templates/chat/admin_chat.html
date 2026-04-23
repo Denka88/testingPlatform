@@ -50,7 +50,7 @@
     </div>
 
     <div class="admin-messages">
-        {% for message in messages %}
+        {% for message in chat_messages %}
             <div class="admin-message {% if message.sender.id == user1.id %}from-user1{% else %}from-user2{% endif %}">
                 <div class="message-sender-badge">
                     {% if message.sender.profile.avatar %}

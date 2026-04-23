@@ -30,6 +30,7 @@ urlpatterns = [
 
     # Student
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('student/dashboard/live-tests/', views.student_dashboard_live_tests, name='student_dashboard_live_tests'),
     path('student/subjects/', views.student_subjects, name='student_subjects'),
     path('student/subjects/<int:subject_id>/', views.student_subject_tests, name='student_subject_tests'),
     path('student/results/', views.student_results, name='student_results'),
