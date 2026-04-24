@@ -703,10 +703,7 @@ def profile_view(request):
     profile = getattr(request.user, 'profile', None)
     
     if request.method == 'POST':
-        # Обновление данных пользователя
-        request.user.first_name = request.POST.get('first_name', '')
-        request.user.last_name = request.POST.get('last_name', '')
-        request.user.patronymic = request.POST.get('patronymic', '')
+        # ФИО меняет только администратор через Django admin
         request.user.email = request.POST.get('email', '')
         request.user.phone = request.POST.get('phone', '')
 
@@ -731,3 +728,29 @@ def profile_view(request):
     
     context = {'profile': profile}
     return render(request, 'users/profile.html', context)
+
+
+@login_required
+def user_profile_detail(request, user_id):
+    """Просмотр профиля другого пользователя."""
+    viewed_user = get_object_or_404(
+        User.objects.select_related('profile', 'profile__group'),
+        id=user_id,
+    )
+
+    if viewed_user == request.user:
+        return redirect('profile')
+
+    if viewed_user.is_admin and not request.user.is_admin:
+        messages.error(request, 'Этот профиль недоступен для просмотра')
+        return redirect('dashboard')
+
+    viewed_profile = getattr(viewed_user, 'profile', None)
+    back_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or reverse('chat:contacts')
+
+    context = {
+        'viewed_user': viewed_user,
+        'viewed_profile': viewed_profile,
+        'back_url': back_url,
+    }
+    return render(request, 'users/profile_detail.html', context)

@@ -120,13 +120,34 @@
 .contact-link {
     display: flex;
     align-items: center;
-    padding: 12px 12px 12px 12px;
-    text-decoration: none;
-    color: inherit;
     gap: 12px;
+    padding: 12px 12px 12px 12px;
     padding-right: 80px;
     position: relative;
     z-index: 1;
+}
+
+.contact-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.contact-chat-link {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    color: inherit;
+    text-decoration: none;
+}
+
+.contact-profile-link:hover,
+.contact-chat-link:hover {
+    color: inherit;
 }
 
 .contact-avatar {
@@ -269,6 +290,18 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.chat-header-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.chat-header-profile-link:hover {
+    color: inherit;
 }
 
 .chat-header-avatar {
@@ -630,7 +663,7 @@
             {% if contacts %}
                 <ul class="contacts-ul">
                     {% for item in contacts %}
-                        <li class="contact-item {% if item.unread_count > 0 %}has-unread{% endif %} {% if active_chat and item.contact.id == active_chat.id %}active{% endif %}">
+                        <li class="contact-item {% if item.unread_count > 0 %}has-unread{% endif %} {% if active_chat and item.contact.id == active_chat.id %}active{% endif %}" data-contact-id="{{ item.contact.id }}">
                             <a href="?chat={{ item.contact.id }}" class="contact-link">
                                 <div class="contact-avatar">
                                     {% if item.contact.profile.avatar %}
@@ -649,13 +682,13 @@
                                     {% if item.last_message %}
                                         <div class="contact-last-message {% if item.unread_count > 0 %}unread{% endif %}">
                                             {% if item.last_message.sender.id == user.id %}
-                                                <span class="sent-indicator">Вы:</span>
+                                                <span class="sent-indicator">????:</span>
                                             {% endif %}
                                             {{ item.last_message.text|truncatechars:40 }}
                                         </div>
                                         <div class="contact-time">{{ item.last_message.created_at|date:"H:i" }}</div>
                                     {% else %}
-                                        <div class="contact-last-message">Нет сообщений</div>
+                                        <div class="contact-last-message">?????? ??????????????????</div>
                                     {% endif %}
                                 </div>
                             </a>
@@ -687,17 +720,19 @@
                             <polyline points="15 18 9 12 15 6"></polyline>
                         </svg>
                     </button>
-                    <div class="chat-header-avatar">
-                        {% if active_chat.profile.avatar %}
-                            <img src="{{ active_chat.profile.avatar.url }}" alt="{{ active_chat.last_name }}">
-                        {% else %}
-                            <span>{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="chat-header-info">
-                        <span class="chat-header-name">{{ active_chat.last_name }} {{ active_chat.first_name }}</span>
-                        <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
-                    </div>
+                    <a href="{% url 'user_profile_detail' active_chat.id %}?next={{ request.get_full_path|urlencode }}" class="chat-header-profile-link">
+                        <div class="chat-header-avatar">
+                            {% if active_chat.profile.avatar %}
+                                <img src="{{ active_chat.profile.avatar.url }}" alt="{{ active_chat.last_name }}">
+                            {% else %}
+                                <span>{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="chat-header-info">
+                            <span class="chat-header-name">{{ active_chat.last_name }} {{ active_chat.first_name }}</span>
+                            <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
+                        </div>
+                    </a>
                 </div>
             </div>
 
@@ -932,23 +967,14 @@ function escapeHtml(text) {
 
 // Обновление бейджа непрочитанных сообщений у конкретного контакта
 function updateContactBadge(senderId, unreadCount, lastMessage) {
-    // Находим контакт в списке
     const contactItems = document.querySelectorAll('.contact-item');
     let found = false;
 
     for (let i = 0; i < contactItems.length; i++) {
         const item = contactItems[i];
-        const link = item.querySelector('.contact-link');
-        if (!link) continue;
+        const contactId = Number.parseInt(item.dataset.contactId || '', 10);
+        if (Number.isNaN(contactId)) continue;
 
-        const href = link.getAttribute('href');
-        if (!href) continue;
-
-        // Извлекаем ID пользователя из href (?chat=ID)
-        const match = href.match(/\?chat=(\d+)/);
-        if (!match) continue;
-
-        const contactId = parseInt(match[1]);
         if (contactId === senderId) {
             found = true;
             const badge = item.querySelector('.unread-badge');
@@ -956,7 +982,6 @@ function updateContactBadge(senderId, unreadCount, lastMessage) {
             const timeEl = item.querySelector('.contact-time');
 
             if (unreadCount > 0) {
-                // Добавляем или обновляем бейдж
                 if (badge) {
                     badge.textContent = unreadCount;
                 } else {
@@ -969,21 +994,17 @@ function updateContactBadge(senderId, unreadCount, lastMessage) {
                     }
                 }
 
-                // Добавляем класс has-unread
                 item.classList.add('has-unread');
 
-                // Обновляем текст последнего сообщения
                 if (messageEl && lastMessage) {
                     messageEl.textContent = lastMessage;
                     messageEl.classList.add('unread');
                 }
 
-                // Обновляем время
                 if (timeEl) {
                     timeEl.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 }
             } else {
-                // Убираем бейдж
                 if (badge) {
                     badge.remove();
                 }
@@ -996,10 +1017,7 @@ function updateContactBadge(senderId, unreadCount, lastMessage) {
         }
     }
 
-    // Если контакт не найден и есть непрочитанные, можно добавить его динамически
-    // (но обычно контакт уже есть в списке)
     if (!found && unreadCount > 0) {
-        // Обновляем общий бейдж в навигации
         console.log('Contact not found in list, senderId:', senderId);
     }
 }
@@ -1108,6 +1126,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.users.forEach(user => {
                             const li = document.createElement('li');
                             li.className = 'contact-item search-result';
+                            li.dataset.contactId = user.id;
 
                             const initials = user.full_name.trim().split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
                             const avatarHtml = user.avatar_url
@@ -1115,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 : `<span>${escapeHtml(initials)}</span>`;
 
                             const chatBadge = user.has_chatted
-                                ? '<span style="font-size: 11px; margin-left: 8px;" title="Уже общались"><i class="fa-solid fa-comment" style="color: var(--success-color);"></i></span>'
+                                ? '<span style="font-size: 11px; margin-left: 8px;" title="??? ????????"><i class="fa-solid fa-comment" style="color: var(--success-color);"></i></span>'
                                 : '';
 
                             li.innerHTML = `

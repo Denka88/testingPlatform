@@ -12,6 +12,7 @@ urlpatterns = [
 
     # Profile
     path('profile/', views.profile_view, name='profile'),
+    path('profile/<int:user_id>/', views.user_profile_detail, name='user_profile_detail'),
 
     # Teacher
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),

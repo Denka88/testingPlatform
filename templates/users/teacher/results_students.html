@@ -129,10 +129,12 @@
                             data-remaining-seconds="{{ result.remaining_seconds|default_if_none:'' }}"
                             {% endif %}>
                             <td>
-                                <div class="student-name">
-                                    {{ student.last_name }} {{ student.first_name }}
-                                    {% if student.patronymic %}{{ student.patronymic }}{% endif %}
-                                </div>
+                                <a href="{% url 'user_profile_detail' student.id %}?next={{ request.get_full_path|urlencode }}" class="student-link">
+                                    <div class="student-name">
+                                        {{ student.last_name }} {{ student.first_name }}
+                                        {% if student.patronymic %}{{ student.patronymic }}{% endif %}
+                                    </div>
+                                </a>
                             </td>
                             <td>
                                 {% if result and result.completed_at %}
@@ -338,6 +340,16 @@
     .student-name {
         font-weight: 500;
         color: var(--text-primary);
+    }
+
+    .student-link {
+        display: inline-block;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .student-link:hover .student-name {
+        color: var(--color-primary);
     }
 
     .result-date {

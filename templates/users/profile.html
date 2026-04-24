@@ -19,12 +19,20 @@
                         {% if profile.avatar %}
                             <img src="{{ profile.avatar.url }}" alt="Аватар">
                         {% else %}
-                            <span class="avatar-placeholder">
+                            <span class="avatar-placeholder"
+                                  data-first-initial="{{ user.first_name|first }}"
+                                  data-last-initial="{{ user.last_name|first }}">
                                 {{ user.first_name|first }}{{ user.last_name|first }}
                             </span>
                         {% endif %}
                     </div>
                     <div class="profile-avatar-upload">
+                        <div class="profile-identity">
+                            <h3 class="profile-full-name">
+                                {{ user.last_name|default:"" }} {{ user.first_name|default:"" }} {{ user.patronymic|default:"" }}
+                            </h3>
+                            <p class="profile-username">@{{ user.username }}</p>
+                        </div>
                         <label for="avatar" class="btn btn-secondary btn-sm">
                             Загрузить фото
                         </label>
@@ -34,33 +42,20 @@
                 </div>
                 
                 <div class="profile-fields">
-                    <div class="form-group">
-                        <label class="form-label" for="username">Имя пользователя</label>
-                        <input type="text" class="form-input" id="username" value="{{ user.username }}" disabled>
-                    </div>
-                    
-                    <div class="form-row form-row-3">
-                        <div class="form-group">
-                            <label class="form-label" for="last_name">Фамилия</label>
-                            <input type="text" class="form-input" id="last_name" name="last_name" value="{{ user.last_name }}">
+                    <div class="profile-readonly-grid">
+                        {% if profile %}
+                        <div class="profile-readonly-card">
+                            <span class="profile-readonly-label">Группа</span>
+                            <span class="profile-readonly-value">{{ profile.get_display_group|default:"Не указана" }}</span>
                         </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="first_name">Имя</label>
-                            <input type="text" class="form-input" id="first_name" name="first_name" value="{{ user.first_name }}">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label" for="patronymic">Отчество</label>
-                            <input type="text" class="form-input" id="patronymic" name="patronymic" value="{{ user.patronymic }}">
-                        </div>
+                        {% endif %}
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label" for="email">Email</label>
                         <input type="email" class="form-input" id="email" name="email" value="{{ user.email }}">
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="phone">Телефон</label>
@@ -72,13 +67,6 @@
                             <input type="date" class="form-input" id="birth_date" name="birth_date" value="{{ user.birth_date|date:'Y-m-d'|default:'' }}">
                         </div>
                     </div>
-                    
-                    {% if profile %}
-                        <div class="form-group">
-                            <label class="form-label" for="group">Группа</label>
-                            <input type="text" class="form-input" id="group" value="{{ profile.get_display_group|default:'Не указана' }}" disabled>
-                        </div>
-                    {% endif %}
                     
                     <div class="form-group">
                         <label class="form-label" for="bio">О себе</label>
@@ -144,6 +132,58 @@
         gap: 20px;
     }
 
+    .profile-avatar-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .profile-identity {
+        margin-bottom: 4px;
+    }
+
+    .profile-full-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
+        margin-bottom: 6px;
+    }
+
+    .profile-username {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+    }
+
+    .profile-readonly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .profile-readonly-card {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 16px;
+        background-color: var(--bg-surface-secondary);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+    }
+
+    .profile-readonly-label {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+    }
+
+    .profile-readonly-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.4;
+    }
+
     @media (max-width: 600px) {
         .form-row {
             grid-template-columns: 1fr;
@@ -152,6 +192,10 @@
         .profile-avatar-section {
             flex-direction: column;
             text-align: center;
+        }
+
+        .profile-avatar-upload {
+            align-items: center;
         }
     }
 
@@ -244,9 +288,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!hasOriginalAvatar && !avatarContainer.querySelector('.avatar-placeholder')) {
                         const placeholder = document.createElement('span');
                         placeholder.className = 'avatar-placeholder';
-                        const firstName = document.getElementById('first_name').value || '';
-                        const lastName = document.getElementById('last_name').value || '';
-                        placeholder.textContent = (firstName.charAt(0) || '') + (lastName.charAt(0) || '');
+                        const firstInitial = '{{ user.first_name|first|escapejs }}';
+                        const lastInitial = '{{ user.last_name|first|escapejs }}';
+                        placeholder.dataset.firstInitial = firstInitial;
+                        placeholder.dataset.lastInitial = lastInitial;
+                        placeholder.textContent = `${firstInitial}${lastInitial}`;
                         avatarContainer.appendChild(placeholder);
                     }
                     
