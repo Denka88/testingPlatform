@@ -9,6 +9,16 @@
 /* Скрываем сообщения Django messages на странице чата */
 .messages { display: none !important; }
 
+:root {
+    --primary-color: var(--color-primary);
+    --primary-color-dark: var(--color-primary-dark);
+    --bg-color: var(--bg-body);
+    --card-bg: var(--bg-surface);
+    --text-color: var(--text-primary);
+    --hover-bg: var(--bg-surface-secondary);
+    --success-color: var(--color-success);
+}
+
 .chat-full-container {
     display: flex;
     height: calc(100vh - 140px);
@@ -23,7 +33,6 @@
     background: var(--card-bg);
     display: flex;
     flex-direction: column;
-    border-right: 2px solid #ccc !important;
 }
 
 .chat-panel {
@@ -31,12 +40,10 @@
     background: var(--bg-color);
     display: flex;
     flex-direction: column;
-    border-left: 2px solid #ccc !important;
 }
 
 .chat-search {
     padding: 16px;
-    border-bottom: 2px solid #ccc !important;
     background: var(--card-bg);
 }
 
@@ -56,17 +63,19 @@
 .search-input {
     width: 100%;
     padding: 10px 40px 10px 40px;
-    border: 2px solid #ccc !important;
+    border: 1px solid transparent;
     border-radius: 8px;
     background: var(--bg-color);
     color: var(--text-color);
     font-size: 14px;
     box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .search-input:focus {
     outline: none;
     border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 .search-clear {
@@ -169,6 +178,19 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.contact-avatar span,
+.chat-header-avatar span,
+.message-avatar span {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
 }
 
 .contact-info {
@@ -283,13 +305,50 @@
 .chat-header {
     padding: 16px 20px;
     background: var(--card-bg);
-    border-bottom: 2px solid #ccc !important;
 }
 
 .chat-header-user {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.chat-selection-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chat-selection-actions[hidden] {
+    display: none !important;
+}
+
+.chat-selection-count {
+    min-width: 28px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.chat-action-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.chat-action-btn:hover {
+    background: var(--hover-bg);
+    border-color: var(--primary-color);
 }
 
 .chat-header-profile-link {
@@ -351,11 +410,26 @@
 .chat-message {
     display: flex;
     gap: 12px;
-    max-width: 70%;
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 12px;
+    border-radius: 16px;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-message[data-owned="true"] {
+    cursor: pointer;
+}
+
+.chat-message.selected {
+    border-radius: 16px;
+    background: rgba(124, 58, 237, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.42);
 }
 
 .chat-message.own {
-    align-self: flex-end;
+    align-self: stretch;
     flex-direction: row-reverse;
 }
 
@@ -383,6 +457,7 @@
 .message-content {
     display: flex;
     flex-direction: column;
+    max-width: min(70%, 720px);
 }
 
 .chat-message.own .message-content {
@@ -424,40 +499,17 @@
 }
 
 /* Тёмная тема */
-[data-theme="dark"] .chat-contacts-panel {
-    border-right: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .chat-panel {
-    border-left: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .chat-search {
-    border-bottom: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .chat-header {
-    border-bottom: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .chat-input-area {
-    border-top: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .search-input {
-    border: 2px solid #444 !important;
-}
-
-[data-theme="dark"] .message-input {
-    border: 2px solid #444 !important;
-}
-
 [data-theme="dark"] .message-text {
     color: #e0e0e0;
 }
 
 [data-theme="dark"] .chat-message.own .message-text {
     color: #e0e0e0;
+}
+
+[data-theme="dark"] .chat-message.selected {
+    background: rgba(139, 92, 246, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.58);
 }
 
 .chat-no-messages {
@@ -481,10 +533,53 @@
     opacity: 0.7;
 }
 
+.chat-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.48);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 2000;
+}
+
+.chat-confirm-overlay[hidden] {
+    display: none !important;
+}
+
+.chat-confirm-modal {
+    width: min(100%, 420px);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+}
+
+.chat-confirm-title {
+    margin: 0 0 10px;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.chat-confirm-text {
+    margin: 0;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.chat-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
 .chat-input-area {
     padding: 16px 20px;
     background: var(--card-bg);
-    border-top: 2px solid #ccc !important;
     flex-shrink: 0;
 }
 
@@ -502,17 +597,19 @@
 .message-input {
     flex: 1;
     padding: 12px 16px;
-    border: 2px solid #ccc !important;
+    border: 1px solid transparent;
     border-radius: 24px;
     background: var(--bg-color);
     color: var(--text-color);
     font-size: 14px;
     box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .message-input:focus {
     outline: none;
     border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 18%, transparent);
 }
 
 .send-btn {
@@ -584,6 +681,11 @@
 @media (max-width: 768px) {
     .chat-contacts-panel {
         width: 100%;
+    }
+
+    .contact-item.active {
+        background: transparent;
+        border-left: none;
     }
 
     .chat-panel {
@@ -682,13 +784,13 @@
                                     {% if item.last_message %}
                                         <div class="contact-last-message {% if item.unread_count > 0 %}unread{% endif %}">
                                             {% if item.last_message.sender.id == user.id %}
-                                                <span class="sent-indicator">????:</span>
+                                                <span class="sent-indicator">Вы:</span>
                                             {% endif %}
                                             {{ item.last_message.text|truncatechars:40 }}
                                         </div>
                                         <div class="contact-time">{{ item.last_message.created_at|date:"H:i" }}</div>
                                     {% else %}
-                                        <div class="contact-last-message">?????? ??????????????????</div>
+                                        <div class="contact-last-message">Нет сообщений</div>
                                     {% endif %}
                                 </div>
                             </a>
@@ -733,6 +835,24 @@
                             <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
                         </div>
                     </a>
+                    <div class="chat-selection-actions" id="chatSelectionActions" hidden>
+                        <span class="chat-selection-count" id="chatSelectionCount">0</span>
+                        <button type="button" class="chat-action-btn" id="deleteMessagesBtn" aria-label="Удалить выбранные сообщения" title="Удалить выбранные сообщения">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6l-1 14H6L5 6"></path>
+                                <path d="M10 11v6"></path>
+                                <path d="M14 11v6"></path>
+                                <path d="M9 6V4h6v2"></path>
+                            </svg>
+                        </button>
+                        <button type="button" class="chat-action-btn" id="clearSelectionBtn" aria-label="Снять выделение" title="Снять выделение">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -744,7 +864,9 @@
                         </div>
                     {% else %}
                         {% with message=item.data %}
-                        <div class="chat-message {% if message.sender.id == user.id %}own{% else %}other{% endif %}">
+                        <div class="chat-message {% if message.sender.id == user.id %}own{% else %}other{% endif %}"
+                             data-message-id="{{ message.id }}"
+                             data-owned="{% if message.sender.id == user.id %}true{% else %}false{% endif %}">
                             <div class="message-avatar">
                                 {% if message.sender.profile.avatar %}
                                     <img src="{{ message.sender.profile.avatar.url }}" alt="{{ message.sender.last_name }}">
@@ -793,6 +915,17 @@
                     </div>
                 </form>
             </div>
+
+            <div class="chat-confirm-overlay" id="deleteConfirmOverlay" hidden>
+                <div class="chat-confirm-modal">
+                    <h3 class="chat-confirm-title">Удалить сообщения?</h3>
+                    <p class="chat-confirm-text">Выбранные сообщения будут удалены из диалога без возможности восстановления.</p>
+                    <div class="chat-confirm-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Отмена</button>
+                        <button type="button" class="btn btn-primary" id="confirmDeleteBtn">Удалить</button>
+                    </div>
+                </div>
+            </div>
         {% else %}
             <div class="chat-empty-state">
                 <div class="empty-state-content">
@@ -818,111 +951,426 @@ const otherUserAvatarUrl = '{% if active_chat.profile.avatar %}{{ active_chat.pr
 const userAvatarUrl = '{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}{% endif %}';
 const userInitials = '{{ user.first_name|first }}{{ user.last_name|first }}';
 const otherUserInitials = '{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}';
+const activeChatDisplayName = '{{ active_chat.get_full_name|default:active_chat.username|escapejs }}';
+const activeChatRole = '{{ active_chat.get_role_display|escapejs }}';
 {% else %}
 const otherUserAvatarUrl = '';
 const userAvatarUrl = '';
 const userInitials = '';
 const otherUserInitials = '';
+const activeChatDisplayName = '';
+const activeChatRole = '';
 {% endif %}
 
 let chatSocket = null;
+const selectedMessageIds = new Set();
 
-function connectChat() {
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function truncateText(text, maxLength = 40) {
+    if (!text) return '';
+    return text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+}
+
+function formatTime(timestamp) {
+    try {
+        const date = new Date(timestamp);
+        if (!Number.isNaN(date.getTime())) {
+            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+    } catch (error) {
+        console.error(error);
+    }
+    return '';
+}
+
+function formatDateLabel(timestamp) {
+    try {
+        const date = new Date(timestamp);
+        if (!Number.isNaN(date.getTime())) {
+            return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+    } catch (error) {
+        console.error(error);
+    }
+    return '';
+}
+
+function scrollToBottom() {
+    const messagesContainer = document.getElementById('chatMessages');
+    if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+}
+
+function getSelectionElements() {
+    return {
+        actions: document.getElementById('chatSelectionActions'),
+        count: document.getElementById('chatSelectionCount'),
+        deleteButton: document.getElementById('deleteMessagesBtn'),
+    };
+}
+
+function updateSelectionToolbar() {
+    const { actions, count, deleteButton } = getSelectionElements();
+    if (!actions || !count || !deleteButton) return;
+
+    const selectedCount = selectedMessageIds.size;
+    count.textContent = selectedCount;
+    actions.hidden = selectedCount === 0;
+    deleteButton.disabled = selectedCount === 0;
+}
+
+function clearSelectedMessages() {
+    document.querySelectorAll('.chat-message.selected').forEach((message) => {
+        message.classList.remove('selected');
+    });
+    selectedMessageIds.clear();
+    updateSelectionToolbar();
+}
+
+function showDeleteConfirm() {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const confirmButton = document.getElementById('confirmDeleteBtn');
+    const cancelButton = document.getElementById('cancelDeleteBtn');
+
+    if (!overlay || !confirmButton || !cancelButton) {
+        return Promise.resolve(false);
+    }
+
+    overlay.hidden = false;
+
+    return new Promise((resolve) => {
+        let settled = false;
+
+        function cleanup(result) {
+            if (settled) return;
+            settled = true;
+            overlay.hidden = true;
+            overlay.removeEventListener('click', onOverlayClick);
+            confirmButton.removeEventListener('click', onConfirm);
+            cancelButton.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKeyDown);
+            resolve(result);
+        }
+
+        function onConfirm() {
+            cleanup(true);
+        }
+
+        function onCancel() {
+            cleanup(false);
+        }
+
+        function onOverlayClick(event) {
+            if (event.target === overlay) {
+                cleanup(false);
+            }
+        }
+
+        function onKeyDown(event) {
+            if (event.key === 'Escape') {
+                cleanup(false);
+            }
+        }
+
+        overlay.addEventListener('click', onOverlayClick);
+        confirmButton.addEventListener('click', onConfirm);
+        cancelButton.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKeyDown);
+    });
+}
+
+function toggleMessageSelection(messageElement) {
+    const messageId = Number.parseInt(messageElement.dataset.messageId || '', 10);
+    if (Number.isNaN(messageId) || messageElement.dataset.owned !== 'true') {
+        return;
+    }
+
+    if (selectedMessageIds.has(messageId)) {
+        selectedMessageIds.delete(messageId);
+        messageElement.classList.remove('selected');
+    } else {
+        selectedMessageIds.add(messageId);
+        messageElement.classList.add('selected');
+    }
+
+    updateSelectionToolbar();
+}
+
+function removeUnreadBadge() {
+    const activeContact = document.querySelector('.contact-item.active .unread-badge');
+    if (activeContact) {
+        activeContact.remove();
+    }
+
+    const activeContactItem = document.querySelector('.contact-item.active');
+    if (activeContactItem) {
+        activeContactItem.classList.remove('has-unread');
+    }
+}
+
+function ensureEmptyState(messagesContainer) {
+    if (!messagesContainer || messagesContainer.querySelector('.chat-message')) {
+        return;
+    }
+
+    if (messagesContainer.querySelector('.chat-no-messages')) {
+        return;
+    }
+
+    messagesContainer.innerHTML = `
+        <div class="chat-no-messages">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <p>Здесь пока нет сообщений</p>
+            <p class="hint">Отправьте первое сообщение!</p>
+        </div>
+    `;
+}
+
+function cleanupDateDividers() {
+    const messagesContainer = document.getElementById('chatMessages');
+    if (!messagesContainer) return;
+
+    const children = Array.from(messagesContainer.children);
+    children.forEach((child, index) => {
+        if (!child.classList.contains('chat-date-divider')) {
+            return;
+        }
+
+        const nextChild = children[index + 1];
+        if (!nextChild || nextChild.classList.contains('chat-date-divider')) {
+            child.remove();
+        }
+    });
+
+    ensureEmptyState(messagesContainer);
+}
+
+function getAvatarInitials(fullName) {
+    return (fullName || '')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0))
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+}
+
+function moveContactItemToTop(item) {
+    const list = item?.closest('.contacts-ul');
+    if (!list) return;
+    list.prepend(item);
+}
+
+function ensureContactsList() {
+    const contactsPanel = document.querySelector('.contacts-list');
+    if (!contactsPanel) return null;
+
+    let list = contactsPanel.querySelector('.contacts-ul');
+    if (list) return list;
+
+    contactsPanel.querySelector('.no-contacts')?.remove();
+    list = document.createElement('ul');
+    list.className = 'contacts-ul';
+    contactsPanel.appendChild(list);
+    return list;
+}
+
+function normalizeConversation(conversation) {
+    if (!conversation) return conversation;
+
+    const normalized = { ...conversation };
+    const activePartnerId = activeChatId && activeChatId !== 'null' ? Number.parseInt(activeChatId, 10) : null;
+
+    if ((!normalized.partner_name || !normalized.partner_name.trim()) && activePartnerId === normalized.partner_id) {
+        normalized.partner_name = activeChatDisplayName;
+    }
+
+    if ((!normalized.partner_role || !normalized.partner_role.trim()) && activePartnerId === normalized.partner_id) {
+        normalized.partner_role = activeChatRole;
+    }
+
+    if (!normalized.partner_avatar_url && activePartnerId === normalized.partner_id) {
+        normalized.partner_avatar_url = otherUserAvatarUrl;
+    }
+
+    return normalized;
+}
+
+function createContactItem(conversation) {
+    const normalizedConversation = normalizeConversation(conversation);
+    const list = ensureContactsList();
+    if (!list) return null;
+
+    const item = document.createElement('li');
+    item.className = 'contact-item';
+    item.dataset.contactId = normalizedConversation.partner_id;
+
+    if (activeChatId && activeChatId !== 'null' && Number.parseInt(activeChatId, 10) === normalizedConversation.partner_id) {
+        item.classList.add('active');
+    }
+
+    const initials = getAvatarInitials(normalizedConversation.partner_name);
+    const avatarHtml = normalizedConversation.partner_avatar_url
+        ? `<img src="${escapeHtml(normalizedConversation.partner_avatar_url)}" alt="${escapeHtml(normalizedConversation.partner_name)}">`
+        : `<span>${escapeHtml(initials)}</span>`;
+
+    item.innerHTML = `
+        <a href="?chat=${normalizedConversation.partner_id}" class="contact-link">
+            <div class="contact-avatar">${avatarHtml}</div>
+            <div class="contact-info">
+                <div class="contact-name">${escapeHtml(normalizedConversation.partner_name || '')}</div>
+                <div class="contact-last-message"></div>
+                <div class="contact-time"></div>
+            </div>
+        </a>
+    `;
+
+    list.prepend(item);
+    return item;
+}
+
+function applyConversationState(conversation) {
+    if (!conversation) return;
+
+    const item = document.querySelector(`.contact-item[data-contact-id="${conversation.partner_id}"]`) || createContactItem(conversation);
+    if (!item) return;
+
+    const nameEl = item.querySelector('.contact-name');
+    const messageEl = item.querySelector('.contact-last-message');
+    const timeEl = item.querySelector('.contact-time');
+    let badge = item.querySelector('.unread-badge');
+
+    if (nameEl && conversation.partner_name) {
+        const badgeHtml = badge ? badge.outerHTML : '';
+        nameEl.innerHTML = `${escapeHtml(conversation.partner_name)}${badgeHtml}`;
+        badge = nameEl.querySelector('.unread-badge');
+    }
+
+    if (conversation.unread_count > 0) {
+        if (!badge && nameEl) {
+            badge = document.createElement('span');
+            badge.className = 'unread-badge';
+            nameEl.appendChild(badge);
+        }
+        if (badge) {
+            badge.textContent = conversation.unread_count;
+        }
+        item.classList.add('has-unread');
+        if (messageEl) {
+            messageEl.classList.add('unread');
+        }
+    } else {
+        if (badge) {
+            badge.remove();
+        }
+        item.classList.remove('has-unread');
+        if (messageEl) {
+            messageEl.classList.remove('unread');
+        }
+    }
+
+    if (messageEl) {
+        if (conversation.has_messages) {
+            const prefix = conversation.last_message_sender_id === currentUserId ? 'Вы: ' : '';
+            messageEl.textContent = `${prefix}${truncateText(conversation.last_message)}`;
+        } else {
+            messageEl.textContent = 'Нет сообщений';
+        }
+    }
+
+    if (timeEl) {
+        timeEl.textContent = conversation.has_messages ? formatTime(conversation.last_message_time) : '';
+    }
+
+    moveContactItemToTop(item);
+}
+
+function updateContactBadge(senderId, unreadCount, lastMessage) {
+    applyConversationState({
+        partner_id: senderId,
+        has_messages: Boolean(lastMessage),
+        last_message: lastMessage || '',
+        last_message_sender_id: senderId,
+        last_message_time: new Date().toISOString(),
+        unread_count: unreadCount,
+    });
+}
+
+function syncActiveConversationPreview() {
     if (!activeChatId || activeChatId === 'null') return;
 
-    // Используем wss:// для HTTPS и ws:// для HTTP
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    chatSocket = new WebSocket(
-        protocol + '//' + window.location.host + '/ws/chat/' + activeChatId + '/'
-    );
+    const messages = document.querySelectorAll('#chatMessages .chat-message');
+    const lastMessage = messages[messages.length - 1];
 
-    chatSocket.onopen = function() {
-        // WebSocket connected
-    };
+    if (!lastMessage) {
+        applyConversationState({
+            partner_id: Number.parseInt(activeChatId, 10),
+            has_messages: false,
+            last_message: '',
+            last_message_sender_id: null,
+            last_message_time: '',
+            unread_count: 0,
+        });
+        return;
+    }
 
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
+    const item = document.querySelector(`.contact-item[data-contact-id="${activeChatId}"]`);
+    if (!item) return;
 
-        if (data.type === 'history') {
-            scrollToBottom();
-            // Убираем бейдж непрочитанных сообщений
-            removeUnreadBadge();
-        } else if (data.type === 'message') {
-            appendMessage(data);
-        }
-    };
+    const messageEl = item.querySelector('.contact-last-message');
+    const timeEl = item.querySelector('.contact-time');
+    const messageText = lastMessage.querySelector('.message-text')?.textContent?.trim() || '';
+    const messageTime = lastMessage.querySelector('.message-time')?.textContent?.trim() || '';
+    const isOwn = lastMessage.dataset.owned === 'true';
 
-    chatSocket.onclose = function() {
-        setTimeout(connectChat, 2000);
-    };
-
-    chatSocket.onerror = function(e) {
-        // WebSocket error
-    };
+    if (messageEl) {
+        messageEl.textContent = `${isOwn ? 'Вы: ' : ''}${truncateText(messageText)}`;
+        messageEl.classList.remove('unread');
+    }
+    if (timeEl) {
+        timeEl.textContent = messageTime;
+    }
+    item.classList.remove('has-unread');
+    item.querySelector('.unread-badge')?.remove();
 }
 
 function appendMessage(data) {
     const messagesContainer = document.getElementById('chatMessages');
+    if (!messagesContainer) return;
+
     const isOwn = data.sender_id === currentUserId;
+    messagesContainer.querySelector('.chat-no-messages')?.remove();
 
-    const noMessages = messagesContainer.querySelector('.chat-no-messages');
-    if (noMessages) {
-        noMessages.remove();
-    }
+    const messageDate = formatDateLabel(data.timestamp);
+    const dateDividers = messagesContainer.querySelectorAll('.chat-date-divider span');
+    const lastDate = dateDividers.length ? dateDividers[dateDividers.length - 1].textContent.trim() : '';
 
-    // Проверяем, нужно ли добавить разделитель даты
-    let messageDate = null;
-    try {
-        const date = new Date(data.timestamp);
-        if (!isNaN(date.getTime())) {
-            messageDate = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-        }
-    } catch (e) {
-        // Игнорируем ошибку
-    }
-
-    // Получаем дату последнего сообщения
-    const lastMessageDiv = messagesContainer.querySelector('.chat-message:last-child');
-    let lastDate = null;
-    if (lastMessageDiv) {
-        const timeEl = lastMessageDiv.querySelector('.message-time');
-        if (timeEl) {
-            // Извлекаем дату из времени (предполагаем, что формат HH:MM)
-            // Для простоты сравниваем только по разделителям
-            const dateDividers = messagesContainer.querySelectorAll('.chat-date-divider');
-            if (dateDividers.length > 0) {
-                lastDate = dateDividers[dateDividers.length - 1].textContent.trim();
-            }
-        }
-    }
-
-    // Добавляем разделитель, если дата изменилась
     if (messageDate && messageDate !== lastDate) {
         const dateDivider = document.createElement('div');
         dateDivider.className = 'chat-date-divider';
-        dateDivider.innerHTML = '<span>' + messageDate + '</span>';
+        dateDivider.innerHTML = `<span>${messageDate}</span>`;
         messagesContainer.appendChild(dateDivider);
     }
 
     const avatarUrl = isOwn ? userAvatarUrl : otherUserAvatarUrl;
     const avatarInitials = isOwn ? userInitials : otherUserInitials;
     const senderName = isOwn ? '{{ user.get_full_name|default:user.username }}' : data.sender_name;
-
-    let time = '';
-    try {
-        const date = new Date(data.timestamp);
-        if (!isNaN(date.getTime())) {
-            time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        } else {
-            time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        }
-    } catch (e) {
-        time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    }
+    const time = formatTime(data.timestamp) || new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = 'chat-message ' + (isOwn ? 'own' : 'other');
-
+    messageDiv.className = `chat-message ${isOwn ? 'own' : 'other'}`;
+    messageDiv.dataset.messageId = data.message_id;
+    messageDiv.dataset.owned = isOwn ? 'true' : 'false';
     messageDiv.innerHTML = `
         <div class="message-avatar">
             ${avatarUrl ? `<img src="${avatarUrl}" alt="${escapeHtml(senderName)}">` : `<span>${avatarInitials}</span>`}
@@ -937,157 +1385,124 @@ function appendMessage(data) {
     `;
 
     messagesContainer.appendChild(messageDiv);
+    syncActiveConversationPreview();
     scrollToBottom();
 }
 
-function scrollToBottom() {
+function removeMessagesByIds(messageIds) {
     const messagesContainer = document.getElementById('chatMessages');
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    if (!messagesContainer) return;
+
+    messageIds.forEach((messageId) => {
+        const normalizedId = Number.parseInt(messageId, 10);
+        selectedMessageIds.delete(normalizedId);
+        messagesContainer.querySelector(`.chat-message[data-message-id="${normalizedId}"]`)?.remove();
+    });
+
+    cleanupDateDividers();
+    syncActiveConversationPreview();
+    updateSelectionToolbar();
 }
 
-function removeUnreadBadge() {
-    // Убираем бейдж непрочитанных сообщений у активного контакта
-    const activeContact = document.querySelector('.contact-item.active .unread-badge');
-    if (activeContact) {
-        activeContact.remove();
-    }
-    // Также убираем класс has-unread
-    const activeContactItem = document.querySelector('.contact-item.active');
-    if (activeContactItem) {
-        activeContactItem.classList.remove('has-unread');
-    }
-}
+function connectChat() {
+    if (!activeChatId || activeChatId === 'null') return;
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    chatSocket = new WebSocket(`${protocol}//${window.location.host}/ws/chat/${activeChatId}/`);
 
-// Обновление бейджа непрочитанных сообщений у конкретного контакта
-function updateContactBadge(senderId, unreadCount, lastMessage) {
-    const contactItems = document.querySelectorAll('.contact-item');
-    let found = false;
+    chatSocket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
 
-    for (let i = 0; i < contactItems.length; i++) {
-        const item = contactItems[i];
-        const contactId = Number.parseInt(item.dataset.contactId || '', 10);
-        if (Number.isNaN(contactId)) continue;
-
-        if (contactId === senderId) {
-            found = true;
-            const badge = item.querySelector('.unread-badge');
-            const messageEl = item.querySelector('.contact-last-message');
-            const timeEl = item.querySelector('.contact-time');
-
-            if (unreadCount > 0) {
-                if (badge) {
-                    badge.textContent = unreadCount;
-                } else {
-                    const nameEl = item.querySelector('.contact-name');
-                    if (nameEl) {
-                        const newBadge = document.createElement('span');
-                        newBadge.className = 'unread-badge';
-                        newBadge.textContent = unreadCount;
-                        nameEl.appendChild(newBadge);
-                    }
-                }
-
-                item.classList.add('has-unread');
-
-                if (messageEl && lastMessage) {
-                    messageEl.textContent = lastMessage;
-                    messageEl.classList.add('unread');
-                }
-
-                if (timeEl) {
-                    timeEl.textContent = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                }
-            } else {
-                if (badge) {
-                    badge.remove();
-                }
-                item.classList.remove('has-unread');
-                if (messageEl) {
-                    messageEl.classList.remove('unread');
-                }
-            }
-            break;
+        if (data.type === 'history') {
+            scrollToBottom();
+            removeUnreadBadge();
+            syncActiveConversationPreview();
+        } else if (data.type === 'message') {
+            appendMessage(data);
+        } else if (data.type === 'messages_deleted') {
+            removeMessagesByIds(data.message_ids || []);
         }
-    }
+    };
 
-    if (!found && unreadCount > 0) {
-        console.log('Contact not found in list, senderId:', senderId);
-    }
+    chatSocket.onclose = function() {
+        setTimeout(connectChat, 2000);
+    };
 }
 
-// Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
-    // Мобильная навигация - кнопка назад
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     const chatPanel = document.getElementById('chatPanel');
     const contactsPanel = document.querySelector('.chat-contacts-panel');
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+    const deleteMessagesBtn = document.getElementById('deleteMessagesBtn');
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
 
     if (mobileBackBtn && chatPanel) {
         mobileBackBtn.addEventListener('click', function() {
             chatPanel.classList.remove('active');
-            if (contactsPanel) {
-                contactsPanel.classList.remove('hidden');
-            }
-            // Очищаем URL от параметра chat
+            contactsPanel?.classList.remove('hidden');
             const url = new URL(window.location);
             url.searchParams.delete('chat');
             window.history.pushState({}, '', url);
         });
     }
 
-    // На мобильном открываем чат при активном chatId
-    if (activeChatId && activeChatId !== 'null' && window.innerWidth <= 768) {
-        if (chatPanel) {
-            chatPanel.classList.add('active');
-        }
-        // Прокручиваем к последнему сообщению
-        setTimeout(() => {
-            const messagesContainer = document.getElementById('chatMessages');
-            if (messagesContainer) {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    if (messagesContainer) {
+        messagesContainer.addEventListener('click', function(event) {
+            const messageElement = event.target.closest('.chat-message');
+            if (!messageElement || !messagesContainer.contains(messageElement)) {
+                return;
             }
-        }, 100);
+            toggleMessageSelection(messageElement);
+        });
     }
 
-    // Обработчик формы отправки сообщения
-    const messageForm = document.getElementById('messageForm');
-    const messageInput = document.getElementById('messageInput');
+    clearSelectionBtn?.addEventListener('click', clearSelectedMessages);
 
-    console.log('activeChatId:', activeChatId);
-    console.log('chatPanel:', document.getElementById('chatPanel'));
-    console.log('innerWidth:', window.innerWidth);
+    deleteMessagesBtn?.addEventListener('click', async function() {
+        if (!selectedMessageIds.size || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+
+        const confirmed = await showDeleteConfirm();
+        if (!confirmed) {
+            return;
+        }
+
+        chatSocket.send(JSON.stringify({
+            action: 'delete_messages',
+            message_ids: Array.from(selectedMessageIds),
+        }));
+    });
+
+    if (activeChatId && activeChatId !== 'null' && window.innerWidth <= 768 && chatPanel) {
+        chatPanel.classList.add('active');
+        setTimeout(scrollToBottom, 100);
+    }
 
     if (messageForm && messageInput) {
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+        messageForm.addEventListener('submit', function(event) {
+            event.preventDefault();
 
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-
-            if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
-                chatSocket.send(JSON.stringify({
-                    message: message
-                }));
-                input.value = '';
+            const message = messageInput.value.trim();
+            if (!message || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+                return;
             }
+
+            chatSocket.send(JSON.stringify({ message }));
+            messageInput.value = '';
         });
 
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                document.getElementById('messageForm').dispatchEvent(new Event('submit'));
+        messageInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                messageForm.dispatchEvent(new Event('submit'));
             }
         });
     }
 
-    // AJAX-поиск пользователей с debounce
     const searchInput = document.getElementById('searchInput');
     const searchResults = document.getElementById('searchResults');
     const searchResultsList = document.getElementById('searchResultsList');
@@ -1098,12 +1513,10 @@ document.addEventListener('DOMContentLoaded', function() {
         searchInput.addEventListener('input', function() {
             const query = this.value.trim();
 
-            // Показываем/скрываем кнопку очистки
             if (searchClear) {
                 searchClear.style.display = query ? 'flex' : 'none';
             }
 
-            // Debounce 300ms
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 if (query.length < 1) {
@@ -1112,8 +1525,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 fetch(`/chat/api/search/?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
+                    .then((response) => response.json())
+                    .then((data) => {
                         if (!searchResultsList) return;
                         searchResultsList.innerHTML = '';
 
@@ -1123,18 +1536,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
 
-                        data.users.forEach(user => {
+                        data.users.forEach((user) => {
                             const li = document.createElement('li');
                             li.className = 'contact-item search-result';
                             li.dataset.contactId = user.id;
 
-                            const initials = user.full_name.trim().split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
+                            const initials = user.full_name.trim().split(' ').map((name) => name.charAt(0)).join('').substring(0, 2).toUpperCase();
                             const avatarHtml = user.avatar_url
                                 ? `<img src="${user.avatar_url}" alt="${escapeHtml(user.full_name)}">`
                                 : `<span>${escapeHtml(initials)}</span>`;
 
                             const chatBadge = user.has_chatted
-                                ? '<span style="font-size: 11px; margin-left: 8px;" title="??? ????????"><i class="fa-solid fa-comment" style="color: var(--success-color);"></i></span>'
+                                ? '<span style="font-size: 11px; margin-left: 8px;" title="Уже общались"><i class="fa-solid fa-comment" style="color: var(--success-color);"></i></span>'
                                 : '';
 
                             li.innerHTML = `
@@ -1155,78 +1568,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         if (searchResults) searchResults.style.display = 'block';
                     })
-                    .catch(err => console.error('Search error:', err));
+                    .catch((error) => console.error('Search error:', error));
             }, 300);
         });
 
-        // Кнопка очистки
-        if (searchClear) {
-            searchClear.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (searchInput) {
-                    searchInput.value = '';
-                    searchInput.focus();
-                    if (searchResults) searchResults.style.display = 'none';
-                    this.style.display = 'none';
-                }
-            });
-        }
+        searchClear?.addEventListener('click', function(event) {
+            event.preventDefault();
+            searchInput.value = '';
+            searchInput.focus();
+            if (searchResults) searchResults.style.display = 'none';
+            this.style.display = 'none';
+        });
     }
 
-    // Подключаемся к уведомлениям для обновления бейджей контактов
-    // Создаем отдельное WebSocket подключение к уведомлениям
-    // (отдельное от base.html, т.к. нам нужен sender_id для обновления конкретного контакта)
     let notificationSocket = null;
 
     function connectNotifications() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = protocol + '//' + window.location.host + '/ws/notifications/';
+        notificationSocket = new WebSocket(`${protocol}//${window.location.host}/ws/notifications/`);
 
-        notificationSocket = new WebSocket(wsUrl);
-
-        notificationSocket.onopen = function() {
-            // Подключено
-        };
-
-        notificationSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
+        notificationSocket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
 
             if (data.type === 'new_message') {
-                // Обновляем бейдж у конкретного контакта
-                updateContactBadge(data.sender_id, data.unread_count, data.message);
+                const isActiveConversation = activeChatId && activeChatId !== 'null' && Number.parseInt(activeChatId, 10) === data.sender_id;
+                if (!isActiveConversation) {
+                    updateContactBadge(data.sender_id, data.unread_count, data.message);
+                    if (typeof showNotification === 'function') {
+                        showNotification(`${data.sender_name}: ${truncateText(data.message, 60)}`, 'info');
+                    }
+                }
+            } else if (data.type === 'conversation_updated') {
+                const isActiveConversation = activeChatId && activeChatId !== 'null' && Number.parseInt(activeChatId, 10) === data.conversation.partner_id;
+                if (isActiveConversation) {
+                    applyConversationState({
+                        ...data.conversation,
+                        unread_count: 0,
+                    });
+                    syncActiveConversationPreview();
+                } else {
+                    applyConversationState(data.conversation);
+                }
             }
         };
 
         notificationSocket.onclose = function() {
-            // Переподключение через 3 секунды
             setTimeout(connectNotifications, 3000);
         };
-
-        notificationSocket.onerror = function(e) {
-            // Ошибка
-        };
     }
 
-    // Подключаем уведомления только если мы НЕ в конкретном чате
-    // (если мы в чате, chatSocket сам помечает сообщения как прочитанные)
-    if (!activeChatId || activeChatId === 'null') {
-        connectNotifications();
-    }
+    connectNotifications();
 
-    // Подключение WebSocket при загрузке
     if (activeChatId && activeChatId !== 'null') {
         connectChat();
+        syncActiveConversationPreview();
 
-        // На мобильном устройстве автоматически открываем чат
         if (window.innerWidth <= 768 && chatPanel) {
             chatPanel.classList.add('active');
-            // Прокручиваем к последнему сообщению
-            setTimeout(() => {
-                const messagesContainer = document.getElementById('chatMessages');
-                if (messagesContainer) {
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                }
-            }, 100);
+            setTimeout(scrollToBottom, 100);
         }
     }
 });

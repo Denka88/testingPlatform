@@ -265,6 +265,7 @@
     (function() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = protocol + '//' + window.location.host + '/ws/notifications/';
+        const suppressMessagePopups = {% if request.resolver_match.url_name == 'test_take' or request.resolver_match.url_name == 'contacts' %}true{% else %}false{% endif %};
         let notificationSocket = null;
         let reconnectTimeout = null;
 
@@ -280,6 +281,10 @@
 
                 if (data.type === 'new_message') {
                     updateBadges(data.unread_count);
+
+                    if (!suppressMessagePopups && typeof showNotification === 'function') {
+                        showNotification(data.sender_name + ': ' + data.message, 'info');
+                    }
                 }
             };
 
