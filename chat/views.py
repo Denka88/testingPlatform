@@ -5,6 +5,7 @@ from django.db.models import Q, Count, Max
 from django.http import JsonResponse
 from datetime import datetime, timezone
 from .models import Message
+from .presence import get_last_seen_at, is_user_online
 
 User = get_user_model()
 
@@ -49,6 +50,8 @@ def contacts_view(request):
             'contact': partner,
             'last_message': last_message,
             'unread_count': unread_count,
+            'is_online': is_user_online(partner.id),
+            'last_seen_at': get_last_seen_at(partner),
         })
 
     # Сортируем по последнему сообщению
@@ -76,6 +79,8 @@ def contacts_view(request):
         'contacts': contact_list,
         'active_chat': active_chat,
         'chat_messages': chat_messages,
+        'active_chat_is_online': is_user_online(active_chat.id) if active_chat else False,
+        'active_chat_last_seen_at': get_last_seen_at(active_chat) if active_chat else None,
     }
     return render(request, 'chat/contacts.html', context)
 

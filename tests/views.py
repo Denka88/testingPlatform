@@ -417,6 +417,10 @@ def test_submit(request, result_id):
     
     # Получаем ответы из POST
     answers_data = json.loads(request.POST.get('answers', '{}'))
+    try:
+        tab_switches_count = max(0, int(request.POST.get('tab_switches_count', 0)))
+    except (TypeError, ValueError):
+        tab_switches_count = 0
 
     correct_count = 0
 
@@ -452,6 +456,7 @@ def test_submit(request, result_id):
     # Обновляем результат
     result.correct_answers_count = correct_count
     result.completed_at = timezone.now()
+    result.tab_switches_count = tab_switches_count
     
     # Сохраняем информацию об устройстве
     result.device_info = request.META.get('HTTP_USER_AGENT', '')[:200]
@@ -518,6 +523,17 @@ def test_result_detail(request, result_id):
             'student_answer': student_answer,
         })
 
+    reset_return_url = ''
+    if request.user.is_teacher or request.user.is_admin:
+        student_group_id = getattr(getattr(result.student, 'profile', None), 'group_id', None)
+        if student_group_id:
+            reset_return_url = reverse(
+                'teacher_results_students',
+                args=[result.test.subject_id, student_group_id, result.test_id]
+            )
+        else:
+            reset_return_url = reverse('teacher_results')
+
     context = {
         'result': result,
         'questions_with_answers': questions_with_answers,
@@ -529,6 +545,7 @@ def test_result_detail(request, result_id):
             f"{reverse('teacher_archived_results', args=[result.student_id, result.test_id])}?next={request.path}"
             if request.user.is_teacher else ''
         ),
+        'reset_return_url': reset_return_url,
     }
     return render(request, 'tests/result_detail.html', context)
 
@@ -646,6 +663,18 @@ def teacher_results_live_status(request):
 
     payload = []
     for result in results:
+        reset_url = ''
+        if (request.user.is_teacher or request.user.is_admin) and result.completed_at:
+            student_group_id = getattr(getattr(result.student, 'profile', None), 'group_id', None)
+            if student_group_id:
+                reset_next_url = reverse(
+                    'teacher_results_students',
+                    args=[result.test.subject_id, student_group_id, result.test_id]
+                )
+            else:
+                reset_next_url = reverse('teacher_results')
+            reset_url = f"{reverse('test_result_reset', args=[result.id])}?next={reset_next_url}"
+
         payload.append({
             'id': result.id,
             'completed': bool(result.completed_at),
@@ -655,6 +684,7 @@ def teacher_results_live_status(request):
             'total_questions': result.total_questions,
             'remaining_seconds': result.remaining_seconds,
             'duration_seconds': result.duration_seconds,
+            'reset_url': reset_url,
         })
 
     return JsonResponse({'results': payload})
@@ -712,6 +742,10 @@ def test_result_reset(request, result_id):
 
     student_name = result.student.last_name
     test_title = result.test.title
+
+    if not result.completed_at:
+        messages.error(request, 'Нельзя сбросить результат, пока студент ещё проходит тест.')
+        return redirect(redirect_url)
 
     # Полностью удаляем результат (StudentAnswer удалятся по CASCADE)
     archive_result_snapshot(result, request.user)

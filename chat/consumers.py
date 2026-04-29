@@ -209,6 +209,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_conversation_state(self, viewer, partner):
         from .models import Message
+        from .presence import get_last_seen_at, is_user_online
 
         last_message = Message.get_conversation(viewer, partner).order_by('-created_at').first()
         unread_count = Message.objects.filter(
@@ -218,6 +219,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         ).count()
         profile = getattr(partner, 'profile', None)
         avatar = getattr(profile, 'avatar', None)
+        last_seen_at = get_last_seen_at(partner)
 
         return {
             'partner_id': int(partner.id),
@@ -229,6 +231,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'last_message_sender_id': int(last_message.sender_id) if last_message else None,
             'last_message_time': last_message.created_at.isoformat() if last_message else '',
             'unread_count': unread_count,
+            'partner_is_online': is_user_online(partner.id),
+            'partner_last_seen_at': last_seen_at.isoformat() if last_seen_at else '',
         }
 
     async def send_conversation_updates(self):

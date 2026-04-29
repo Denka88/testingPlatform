@@ -19,7 +19,7 @@
             Назад
         </button>
     </div>
-    
+
     <div class="result-card-main">
         <div class="result-card-header">
             <div class="result-main-info">
@@ -42,7 +42,7 @@
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Дата</span>
-                <span class="result-stat-value" data-detail-date>{% if result.completed_at %}{{ result.completed_at|date:"d.m.Y H:i" }}{% else %}В процессе{% endif %}</span>
+                <span class="result-stat-value" data-detail-date>{% if result.completed_at %}{{ result.completed_at|date:"d.m.Y H:i" }}{% endif %}</span>
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Время прохождения</span>
@@ -56,8 +56,10 @@
                 <span class="result-stat-label">Оценка</span>
                 {% if result.grade %}
                     <span class="result-stat-value grade-value grade-{{ result.grade }}" data-detail-grade>{{ result.grade }}</span>
+                {% elif not result.completed_at %}
+                    <span class="result-stat-value" data-detail-grade>{{ result.remaining_seconds|format_timer }}</span>
                 {% else %}
-                    <span class="result-stat-value">—</span>
+                    <span class="result-stat-value" data-detail-grade>—</span>
                 {% endif %}
             </div>
             {% if user.is_teacher %}
@@ -68,96 +70,18 @@
             {% endif %}
         </div>
     </div>
-    
+
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Ответы</h2>
         </div>
         <div class="card-body" id="resultAnswersBody" data-answers-loaded="{% if result.completed_at %}true{% else %}false{% endif %}">
-            {% for item in questions_with_answers %}
-            <div class="answer-review">
-                <div class="answer-review-header">
-                    <span class="answer-review-number">Вопрос {{ forloop.counter }}</span>
-                    {% if user.is_teacher or result.test.show_correct_answers %}
-                    <span class="answer-review-status {% if item.student_answer and item.student_answer.is_correct %}correct{% elif item.student_answer %}incorrect{% endif %}">
-                        {% if item.student_answer %}
-                            {% if item.student_answer.is_correct %}
-                                <i class="fa-solid fa-check"></i> Правильно
-                            {% else %}
-                                <i class="fa-solid fa-xmark"></i> Неправильно
-                            {% endif %}
-                        {% else %}
-                            <i class="fa-solid fa-minus"></i> Нет ответа
-                        {% endif %}
-                    </span>
-                    {% endif %}
-                </div>
-
-                <p class="answer-review-question">{{ item.question.text }}</p>
-
-                <div class="answer-review-answers">
-                    <div class="review-answers-section">
-                        <span class="review-section-label">Выбранный ответ:</span>
-                        <div class="review-answers-list">
-                            {% if item.student_answer %}
-                                {% for answer in item.student_answer.answers.all %}
-                                    {% if user.is_teacher or result.test.show_correct_answers %}
-                                        {% if answer.is_correct %}
-                                            <span class="review-answer-tag correct selected">
-                                                <i class="fa-solid fa-check"></i> {{ answer.text }}
-                                            </span>
-                                        {% else %}
-                                            <span class="review-answer-tag incorrect selected">
-                                                <i class="fa-solid fa-xmark"></i> {{ answer.text }}
-                                            </span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="review-answer-tag selected">
-                                            {{ answer.text }}
-                                        </span>
-                                    {% endif %}
-                                {% empty %}
-                                    <span class="review-answer-tag no-answer">Ответ не дан</span>
-                                {% endfor %}
-                            {% else %}
-                                <span class="review-answer-tag no-answer">Ответ не дан</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    {% if user.is_teacher or result.test.show_correct_answers %}
-                    <div class="review-answers-section">
-                        <span class="review-section-label">Правильный ответ:</span>
-                        <div class="review-answers-list">
-                            {% for correct_answer in item.question.answers.all %}
-                                {% if correct_answer.is_correct %}
-                                    <span class="review-answer-tag correct">
-                                        {{ correct_answer.text }}
-                                    </span>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="review-answers-section">
-                        <span class="review-section-label"></span>
-                        <p class="answers-hidden-message">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            Преподаватель запретил просмотр правильных ответов
-                        </p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
+            {% include 'tests/_result_answers.html' %}
         </div>
     </div>
-    
+
     {% if user.is_teacher %}
-    <div class="card">
+    <div class="card mt-3" id="liveGradeCard" {% if not result.completed_at %}hidden{% endif %}>
         <div class="card-header">
             <h2 class="card-title">Изменить оценку</h2>
         </div>
@@ -182,7 +106,7 @@
         </div>
     </div>
 
-    <div class="card mt-3">
+    <div class="card mt-3" id="liveArchiveCard">
         <div class="card-header">
             <h2 class="card-title">Архив</h2>
         </div>
@@ -191,24 +115,28 @@
         </div>
     </div>
 
-    <div class="card mt-3">
-        <div class="card-header">
-            <h2 class="card-title">Сбросить результат</h2>
+    <div id="liveResetMount">
+        {% if result.completed_at %}
+        <div class="card mt-3" id="liveResetCard">
+            <div class="card-header">
+                <h2 class="card-title">Сбросить результат</h2>
+            </div>
+            <div class="card-body">
+                <p class="mb-3 reset-description">
+                    После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
+                </p>
+                <a href="{% url 'test_result_reset' result.id %}?next={{ reset_return_url|urlencode }}"
+                   class="btn btn-danger"
+                   onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                    Сбросить результат
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-            <p class="mb-3" style="color: var(--text-secondary); font-size: 0.9375rem;">
-                После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
-            </p>
-            <a href="{% url 'test_result_reset' result.id %}"
-               class="btn btn-danger"
-               onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="1 4 1 10 7 10"></polyline>
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                </svg>
-                Сбросить результат
-            </a>
-        </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
@@ -219,11 +147,11 @@
     .result-detail-container {
         width: 100%;
     }
-    
+
     .result-header {
         margin-bottom: 20px;
     }
-    
+
     .result-card-main {
         background-color: var(--bg-surface);
         border-radius: var(--border-radius-lg);
@@ -231,7 +159,7 @@
         padding: 24px;
         margin-bottom: 24px;
     }
-    
+
     .result-card-header {
         display: flex;
         justify-content: space-between;
@@ -240,19 +168,19 @@
         padding-bottom: 24px;
         border-bottom: 1px solid var(--border-color);
     }
-    
+
     .result-title {
         font-size: 1.5rem;
         font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 8px;
     }
-    
+
     .result-subject {
         color: var(--text-secondary);
         font-size: 0.9375rem;
     }
-    
+
     .result-stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -300,18 +228,18 @@
         border-radius: var(--border-radius);
         margin-bottom: 16px;
     }
-    
+
     .answer-review:last-child {
         margin-bottom: 0;
     }
-    
+
     .answer-review-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 12px;
     }
-    
+
     .answer-review-number {
         font-size: 0.875rem;
         font-weight: 600;
@@ -319,54 +247,54 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
-    
+
     .answer-review-status {
         font-size: 0.875rem;
         font-weight: 500;
         padding: 4px 12px;
         border-radius: 9999px;
     }
-    
+
     .answer-review-status.correct {
         background-color: var(--color-success-bg);
         color: var(--color-success);
     }
-    
+
     .answer-review-status.incorrect {
         background-color: var(--color-error-bg);
         color: var(--color-error);
     }
-    
+
     .answer-review-question {
         font-size: 1rem;
         font-weight: 600;
         color: var(--text-primary);
         margin-bottom: 16px;
     }
-    
+
     .answer-review-answers {
         display: flex;
         flex-direction: column;
         gap: 12px;
     }
-    
+
     .review-answers-section {
         display: flex;
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .review-section-label {
         font-size: 0.8125rem;
         color: var(--text-muted);
     }
-    
+
     .review-answers-list {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
     }
-    
+
     .review-answer-tag {
         padding: 6px 12px;
         background-color: var(--bg-surface);
@@ -397,7 +325,7 @@
         background-color: var(--bg-surface-secondary);
         color: var(--text-muted);
     }
-    
+
     .answers-hidden-message {
         display: flex;
         align-items: center;
@@ -408,21 +336,21 @@
         color: var(--text-secondary);
         font-size: 0.875rem;
     }
-    
+
     .answers-hidden-message svg {
         flex-shrink: 0;
         opacity: 0.7;
     }
-    
+
     .grade-selector {
         display: flex;
         gap: 12px;
     }
-    
+
     .grade-input {
         display: none;
     }
-    
+
     .grade-option {
         width: 50px;
         height: 50px;
@@ -436,14 +364,19 @@
         border: 2px solid transparent;
         transition: all 0.2s ease;
     }
-    
+
     .grade-option:hover {
         transform: scale(1.1);
     }
-    
+
     .grade-input:checked + .grade-option {
         border-color: var(--color-primary);
         box-shadow: 0 0 0 3px var(--color-primary-light);
+    }
+
+    .reset-description {
+        color: var(--text-secondary);
+        font-size: 0.9375rem;
     }
 
     @keyframes slideIn {
@@ -479,12 +412,47 @@
         const liveUrl = '{% url "teacher_results_live_status" %}';
         const answersFragmentUrl = '{% url "test_result_answers_fragment" result.id %}';
         const answersBody = document.getElementById('resultAnswersBody');
+        const liveResetMount = document.getElementById('liveResetMount');
+        const liveGradeCard = document.getElementById('liveGradeCard');
 
         function formatTimer(seconds) {
             const safeSeconds = Math.max(0, Number(seconds) || 0);
             const minutes = Math.floor(safeSeconds / 60);
             const secs = safeSeconds % 60;
             return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatDuration(seconds) {
+            const safeSeconds = Math.max(0, Number(seconds) || 0);
+            const minutes = Math.floor(safeSeconds / 60);
+            const secs = safeSeconds % 60;
+            return `${minutes} мин ${secs} сек`;
+        }
+
+        function buildResetCardMarkup(resetUrl) {
+            if (!resetUrl) {
+                return '';
+            }
+
+            return `
+                <div class="card mt-3" id="liveResetCard">
+                    <div class="card-header">
+                        <h2 class="card-title">Сбросить результат</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3 reset-description">
+                            После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
+                        </p>
+                        <a href="${resetUrl}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                            Сбросить результат
+                        </a>
+                    </div>
+                </div>
+            `;
         }
 
         function setActiveState(remainingSeconds) {
@@ -512,6 +480,14 @@
                 detailGradeEl.className = 'result-stat-value';
                 detailGradeEl.textContent = formatTimer(remainingSeconds);
             }
+
+            if (liveGradeCard) {
+                liveGradeCard.setAttribute('hidden', 'hidden');
+            }
+
+            if (liveResetMount) {
+                liveResetMount.innerHTML = '';
+            }
         }
 
         function setCompletedState(result) {
@@ -538,7 +514,7 @@
             }
 
             if (durationEl) {
-                durationEl.textContent = result.duration_seconds == null ? '—' : `${Math.floor(result.duration_seconds / 60)} мин ${result.duration_seconds % 60} сек`;
+                durationEl.textContent = result.duration_seconds == null ? '—' : formatDuration(result.duration_seconds);
             }
 
             if (answersEl) {
@@ -553,6 +529,14 @@
                     detailGradeEl.className = 'result-stat-value';
                     detailGradeEl.textContent = '—';
                 }
+            }
+
+            if (liveGradeCard) {
+                liveGradeCard.removeAttribute('hidden');
+            }
+
+            if (liveResetMount) {
+                liveResetMount.innerHTML = buildResetCardMarkup(result.reset_url);
             }
 
             if (answersBody && answersBody.dataset.answersLoaded !== 'true') {
@@ -617,6 +601,9 @@
 {% if user.is_teacher %}
 (function() {
     const gradeForm = document.getElementById('gradeForm');
+    if (!gradeForm) {
+        return;
+    }
 
     gradeForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -641,13 +628,15 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем отображение оценки на странице
-                const gradeElements = document.querySelectorAll('.grade-' + data.grade);
-                gradeElements.forEach(el => {
+                document.querySelectorAll('[data-detail-grade], [data-result-main-grade]').forEach((el) => {
+                    if (el.dataset.detailGrade !== undefined) {
+                        el.className = `result-stat-value grade-value grade-${data.grade}`;
+                    } else {
+                        el.className = `result-grade-main grade-${data.grade}`;
+                    }
                     el.textContent = data.grade;
                 });
 
-                // Показываем уведомление
                 showNotification('Оценка сохранена', 'success');
             } else {
                 showNotification('Ошибка: ' + data.error, 'error');
@@ -658,62 +647,6 @@
         });
     });
 })();
-
-function showNotification(message, type) {
-    const colors = {
-        success: 'var(--color-success)',
-        error: 'var(--color-error)',
-        warning: 'var(--color-warning, #f59e0b)',
-        info: 'var(--color-primary)'
-    };
-
-    const icons = {
-        success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
-        error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
-        warning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
-        info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'
-    };
-
-    const notification = document.createElement('div');
-    notification.className = 'notification notification-' + type;
-
-    const bgColor = colors[type] || colors.info;
-
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 16px 24px;
-        background-color: ${bgColor};
-        color: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-lg);
-        z-index: 10000;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease;
-        max-width: 400px;
-    `;
-
-    notification.innerHTML = `
-        <span style="flex-shrink:0; display:flex; align-items:center;">${icons[type] || icons.info}</span>
-        <span style="flex:1;">${message}</span>
-        <button onclick="this.parentElement.remove();" style="background:none; border:none; color:white; cursor:pointer; flex-shrink:0; padding:4px; display:flex; align-items:center; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-    `;
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
-    }, 4000);
-}
 {% endif %}
 </script>
 {% endblock %}

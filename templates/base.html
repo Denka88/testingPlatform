@@ -261,19 +261,61 @@
 
     {% if user.is_authenticated %}
     <script>
-    // ==================== WebSocket уведомления о новых сообщениях ====================
     (function() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = protocol + '//' + window.location.host + '/ws/notifications/';
         const suppressMessagePopups = {% if request.resolver_match.url_name == 'test_take' or request.resolver_match.url_name == 'contacts' %}true{% else %}false{% endif %};
+        const presenceIdleTimeoutMs = 5 * 60 * 1000;
         let notificationSocket = null;
         let reconnectTimeout = null;
+        let presenceIdleTimer = null;
+        let presenceIsIdle = false;
+
+        function sendPresenceEvent(type) {
+            if (!notificationSocket || notificationSocket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            notificationSocket.send(JSON.stringify({ type: type }));
+        }
+
+        function schedulePresenceIdle() {
+            clearTimeout(presenceIdleTimer);
+            presenceIdleTimer = setTimeout(function() {
+                if (!presenceIsIdle) {
+                    presenceIsIdle = true;
+                    sendPresenceEvent('presence_idle');
+                }
+            }, presenceIdleTimeoutMs);
+        }
+
+        function registerPresenceActivity() {
+            if (presenceIsIdle) {
+                presenceIsIdle = false;
+                sendPresenceEvent('presence_ping');
+            }
+
+            schedulePresenceIdle();
+        }
+
+        function bindPresenceTracking() {
+            ['mousedown', 'keydown', 'touchstart', 'scroll', 'focus'].forEach(function(eventName) {
+                window.addEventListener(eventName, registerPresenceActivity, { passive: true });
+            });
+
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    registerPresenceActivity();
+                }
+            });
+        }
 
         function connectNotifications() {
             notificationSocket = new WebSocket(wsUrl);
 
             notificationSocket.onopen = function() {
-                // Подключено
+                presenceIsIdle = false;
+                schedulePresenceIdle();
             };
 
             notificationSocket.onmessage = function(e) {
@@ -289,23 +331,19 @@
             };
 
             notificationSocket.onclose = function() {
-                // Переподключение через 3 секунды
+                clearTimeout(presenceIdleTimer);
                 reconnectTimeout = setTimeout(connectNotifications, 3000);
             };
 
-            notificationSocket.onerror = function(e) {
-                // Ошибка
+            notificationSocket.onerror = function() {
             };
         }
 
         function updateBadges(count) {
-            // Не обновляем бейджи, если конкретный чат открыт —
-            // там сообщения помечаются как прочитанные через chat_message
             if (typeof activeChatId !== 'undefined' && activeChatId && activeChatId !== 'null') {
                 return;
             }
 
-            // Обновляем бейджи на пунктах меню
             var navBadges = document.querySelectorAll('.nav-badge');
             for (var i = 0; i < navBadges.length; i++) {
                 if (count > 0) {
@@ -316,7 +354,6 @@
                 }
             }
 
-            // Обновляем кружок на кнопке гамбургера
             var menuBadge = document.querySelector('.menu-toggle-badge');
             if (menuBadge) {
                 menuBadge.style.display = count > 0 ? 'block' : 'none';
@@ -324,6 +361,7 @@
         }
 
         connectNotifications();
+        bindPresenceTracking();
     })();
     </script>
     {% endif %}

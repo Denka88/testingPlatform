@@ -51,15 +51,11 @@
                             <td>
                                 {% if result.student.profile.group %}
                                     {{ result.student.profile.group.name }}
-                                {% else %}
-                                    —
-                                {% endif %}
                             </td>
                             <td>{{ result.test.title }}</td>
                             <td>
                                 {% if result.completed_at %}
                                     {{ result.completed_at|date:"d.m.Y H:i" }}
-                                {% else %}
                                     <span class="badge badge-draft">В процессе</span>
                                 {% endif %}
                             </td>
@@ -83,11 +79,14 @@
                                        class="btn btn-secondary btn-sm">
                                         Просмотр
                                     </a>
+                                    {% endif %}
+                                    {% if result.completed_at %}
                                     <a href="{% url 'test_result_reset' result.id %}?next={{ request.path }}"
                                        class="btn btn-secondary btn-sm"
                                        onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
                                         Сбросить
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>

@@ -612,13 +612,31 @@
     const confirmSubmit = document.getElementById('confirmSubmit');
     const resultOverlay = document.getElementById('resultOverlay');
     const answeredCountEl = document.getElementById('answeredCount');
+    const resultId = form.dataset.resultId;
+    const tabSwitchesStorageKey = `testTabSwitches_${resultId}`;
     
     let currentQuestionIndex = 0;
     let timerInterval;
+    let tabSwitchesCount = 0;
 
     // Серверные данные: время начала (мс) и лимит в минутах
     const startedAtMs = {{ started_at_ms }};
     const limitSeconds = {{ test.time_limit }};
+
+    function loadTabSwitchesCount() {
+        const saved = sessionStorage.getItem(tabSwitchesStorageKey);
+        const parsed = Number.parseInt(saved || '0', 10);
+        tabSwitchesCount = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    }
+
+    function saveTabSwitchesCount() {
+        sessionStorage.setItem(tabSwitchesStorageKey, String(tabSwitchesCount));
+    }
+
+    function clearAttemptStorage() {
+        sessionStorage.removeItem('testAnswers');
+        sessionStorage.removeItem(tabSwitchesStorageKey);
+    }
 
     // Показываем первый вопрос
     showQuestion(0);
@@ -774,11 +792,19 @@
 
     // Инициализация: если новая попытка — очищаем старые ответы, иначе восстанавливаем
     if ({% if is_new_attempt %}true{% else %}false{% endif %}) {
-        sessionStorage.removeItem('testAnswers');
+        clearAttemptStorage();
         answeredQuestions.clear();
     } else {
         restoreAnswers();
     }
+    loadTabSwitchesCount();
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            tabSwitchesCount += 1;
+            saveTabSwitchesCount();
+        }
+    });
     
     // Сохранение ответов
     function saveAnswers() {
@@ -828,6 +854,7 @@
         const answers = JSON.parse(sessionStorage.getItem('testAnswers') || '{}');
         const formData = new FormData();
         formData.append('answers', JSON.stringify(answers));
+        formData.append('tab_switches_count', String(tabSwitchesCount));
 
         fetch('{% url "test_submit" result.id %}', {
             method: 'POST',
@@ -839,6 +866,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                clearAttemptStorage();
                 showResult(data);
             } else {
                 showNotification('Ошибка при отправке: ' + data.error, 'error');

@@ -207,6 +207,16 @@
     gap: 8px;
 }
 
+.contact-presence {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.contact-presence.is-online {
+    color: var(--primary-color);
+}
+
 .unread-badge {
     background: #dc3545;
     color: white;
@@ -386,6 +396,7 @@
 .chat-header-info {
     display: flex;
     flex-direction: column;
+    gap: 3px;
 }
 
 .chat-header-name {
@@ -396,6 +407,22 @@
 .chat-header-role {
     font-size: 12px;
     color: var(--text-muted);
+}
+
+.chat-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chat-header-presence {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.chat-header-presence.is-online {
+    color: var(--primary-color);
 }
 
 .chat-messages {
@@ -495,7 +522,7 @@
 
 .chat-message.own .message-text {
     background: var(--primary-color);
-    color: #333;
+    color: #fff;
 }
 
 /* Тёмная тема */
@@ -781,6 +808,15 @@
                                             <span class="unread-badge">{{ item.unread_count }}</span>
                                         {% endif %}
                                     </div>
+                                    <div class="contact-presence {% if item.is_online %}is-online{% endif %}" data-contact-presence="{{ item.contact.id }}">
+                                        {% if item.is_online %}
+                                            В сети
+                                        {% elif item.last_seen_at %}
+                                            Был(а) в сети {{ item.last_seen_at|date:"d.m.Y H:i" }}
+                                        {% else %}
+                                            Не в сети
+                                        {% endif %}
+                                    </div>
                                     {% if item.last_message %}
                                         <div class="contact-last-message {% if item.unread_count > 0 %}unread{% endif %}">
                                             {% if item.last_message.sender.id == user.id %}
@@ -832,7 +868,23 @@
                         </div>
                         <div class="chat-header-info">
                             <span class="chat-header-name">{{ active_chat.last_name }} {{ active_chat.first_name }}</span>
-                            <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
+                            <div class="chat-header-meta">
+                                <span class="chat-header-role">{{ active_chat.get_role_display }}</span>
+                                <span
+                                    class="chat-header-presence {% if active_chat_is_online %}is-online{% endif %}"
+                                    id="activeChatPresence"
+                                    data-user-id="{{ active_chat.id }}"
+                                    data-last-seen="{% if active_chat_last_seen_at %}{{ active_chat_last_seen_at|date:'c' }}{% endif %}"
+                                >
+                                    {% if active_chat_is_online %}
+                                        В сети
+                                    {% elif active_chat_last_seen_at %}
+                                        Был(а) в сети {{ active_chat_last_seen_at|date:"d.m.Y H:i" }}
+                                    {% else %}
+                                        Не в сети
+                                    {% endif %}
+                                </span>
+                            </div>
                         </div>
                     </a>
                     <div class="chat-selection-actions" id="chatSelectionActions" hidden>
@@ -953,6 +1005,8 @@ const userInitials = '{{ user.first_name|first }}{{ user.last_name|first }}';
 const otherUserInitials = '{{ active_chat.first_name|first }}{{ active_chat.last_name|first }}';
 const activeChatDisplayName = '{{ active_chat.get_full_name|default:active_chat.username|escapejs }}';
 const activeChatRole = '{{ active_chat.get_role_display|escapejs }}';
+const activeChatInitialPresenceLastSeen = '{% if active_chat_last_seen_at %}{{ active_chat_last_seen_at|date:"c" }}{% endif %}';
+const activeChatInitialIsOnline = {% if active_chat_is_online %}true{% else %}false{% endif %};
 {% else %}
 const otherUserAvatarUrl = '';
 const userAvatarUrl = '';
@@ -960,6 +1014,8 @@ const userInitials = '';
 const otherUserInitials = '';
 const activeChatDisplayName = '';
 const activeChatRole = '';
+const activeChatInitialPresenceLastSeen = '';
+const activeChatInitialIsOnline = false;
 {% endif %}
 
 let chatSocket = null;
@@ -987,6 +1043,76 @@ function formatTime(timestamp) {
         console.error(error);
     }
     return '';
+}
+
+function formatLastSeen(timestamp) {
+    if (!timestamp) return 'Не в сети';
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+        return 'Не в сети';
+    }
+
+    const now = new Date();
+    const isToday = now.toDateString() === date.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = yesterday.toDateString() === date.toDateString();
+    const time = date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+
+    if (isToday) {
+        return `Был(а) в сети сегодня в ${time}`;
+    }
+
+    if (isYesterday) {
+        return `Был(а) в сети вчера в ${time}`;
+    }
+
+    const datePart = date.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+
+    return `Был(а) в сети ${datePart} в ${time}`;
+}
+
+function formatContactPresence(isOnline, timestamp) {
+    if (isOnline) {
+        return 'В сети';
+    }
+
+    return formatLastSeen(timestamp);
+}
+
+function updateActiveChatPresence(presence) {
+    if (!presence || !activeChatId || activeChatId === 'null') return;
+    if (Number.parseInt(activeChatId, 10) !== Number.parseInt(presence.user_id, 10)) return;
+
+    const presenceEl = document.getElementById('activeChatPresence');
+    if (!presenceEl) return;
+
+    if (presence.is_online) {
+        presenceEl.textContent = 'В сети';
+        presenceEl.classList.add('is-online');
+        presenceEl.dataset.lastSeen = '';
+        return;
+    }
+
+    presenceEl.classList.remove('is-online');
+    presenceEl.dataset.lastSeen = presence.last_seen_at || '';
+    presenceEl.textContent = formatLastSeen(presence.last_seen_at || activeChatInitialPresenceLastSeen);
+}
+
+function updateContactPresence(partnerId, isOnline, lastSeenAt) {
+    const presenceEl = document.querySelector(`.contact-presence[data-contact-presence="${partnerId}"]`);
+    if (!presenceEl) return;
+
+    presenceEl.textContent = formatContactPresence(Boolean(isOnline), lastSeenAt);
+    presenceEl.classList.toggle('is-online', Boolean(isOnline));
 }
 
 function formatDateLabel(timestamp) {
@@ -1203,6 +1329,14 @@ function normalizeConversation(conversation) {
         normalized.partner_avatar_url = otherUserAvatarUrl;
     }
 
+    if (typeof normalized.partner_is_online === 'undefined' && activePartnerId === normalized.partner_id) {
+        normalized.partner_is_online = activeChatInitialIsOnline;
+    }
+
+    if (!normalized.partner_last_seen_at && activePartnerId === normalized.partner_id) {
+        normalized.partner_last_seen_at = activeChatInitialPresenceLastSeen;
+    }
+
     return normalized;
 }
 
@@ -1229,6 +1363,7 @@ function createContactItem(conversation) {
             <div class="contact-avatar">${avatarHtml}</div>
             <div class="contact-info">
                 <div class="contact-name">${escapeHtml(normalizedConversation.partner_name || '')}</div>
+                <div class="contact-presence${normalizedConversation.partner_is_online ? ' is-online' : ''}" data-contact-presence="${normalizedConversation.partner_id}">${escapeHtml(formatContactPresence(normalizedConversation.partner_is_online, normalizedConversation.partner_last_seen_at || ''))}</div>
                 <div class="contact-last-message"></div>
                 <div class="contact-time"></div>
             </div>
@@ -1246,6 +1381,7 @@ function applyConversationState(conversation) {
     if (!item) return;
 
     const nameEl = item.querySelector('.contact-name');
+    const presenceEl = item.querySelector('.contact-presence');
     const messageEl = item.querySelector('.contact-last-message');
     const timeEl = item.querySelector('.contact-time');
     let badge = item.querySelector('.unread-badge');
@@ -1290,6 +1426,13 @@ function applyConversationState(conversation) {
 
     if (timeEl) {
         timeEl.textContent = conversation.has_messages ? formatTime(conversation.last_message_time) : '';
+    }
+
+    if (presenceEl && (typeof conversation.partner_is_online !== 'undefined' || typeof conversation.partner_last_seen_at !== 'undefined')) {
+        const isOnline = Boolean(conversation.partner_is_online);
+        const lastSeenAt = conversation.partner_last_seen_at || '';
+        presenceEl.textContent = formatContactPresence(isOnline, lastSeenAt);
+        presenceEl.classList.toggle('is-online', isOnline);
     }
 
     moveContactItemToTop(item);
@@ -1581,11 +1724,58 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    const presenceIdleTimeoutMs = 5 * 60 * 1000;
     let notificationSocket = null;
+    let notificationPresenceIdleTimer = null;
+    let notificationPresenceIsIdle = false;
+
+    function sendNotificationPresenceEvent(type) {
+        if (!notificationSocket || notificationSocket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+
+        notificationSocket.send(JSON.stringify({ type: type }));
+    }
+
+    function scheduleNotificationPresenceIdle() {
+        clearTimeout(notificationPresenceIdleTimer);
+        notificationPresenceIdleTimer = setTimeout(function() {
+            if (!notificationPresenceIsIdle) {
+                notificationPresenceIsIdle = true;
+                sendNotificationPresenceEvent('presence_idle');
+            }
+        }, presenceIdleTimeoutMs);
+    }
+
+    function registerNotificationPresenceActivity() {
+        if (notificationPresenceIsIdle) {
+            notificationPresenceIsIdle = false;
+            sendNotificationPresenceEvent('presence_ping');
+        }
+
+        scheduleNotificationPresenceIdle();
+    }
+
+    function bindNotificationPresenceTracking() {
+        ['mousedown', 'keydown', 'touchstart', 'scroll', 'focus'].forEach(function(eventName) {
+            window.addEventListener(eventName, registerNotificationPresenceActivity, { passive: true });
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                registerNotificationPresenceActivity();
+            }
+        });
+    }
 
     function connectNotifications() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         notificationSocket = new WebSocket(`${protocol}//${window.location.host}/ws/notifications/`);
+
+        notificationSocket.onopen = function() {
+            notificationPresenceIsIdle = false;
+            scheduleNotificationPresenceIdle();
+        };
 
         notificationSocket.onmessage = function(event) {
             const data = JSON.parse(event.data);
@@ -1609,15 +1799,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     applyConversationState(data.conversation);
                 }
+            } else if (data.type === 'presence_update') {
+                updateActiveChatPresence(data.presence);
+                updateContactPresence(data.presence.user_id, data.presence.is_online, data.presence.last_seen_at || '');
             }
         };
 
         notificationSocket.onclose = function() {
+            clearTimeout(notificationPresenceIdleTimer);
             setTimeout(connectNotifications, 3000);
         };
     }
 
     connectNotifications();
+    bindNotificationPresenceTracking();
 
     if (activeChatId && activeChatId !== 'null') {
         connectChat();

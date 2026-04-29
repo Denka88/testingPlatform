@@ -501,6 +501,7 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
             payload.append({
                 'student_id': student_id,
                 'has_result': False,
+                'archive_url': f"{reverse('teacher_archived_results', args=[student_id, test.id])}?next={page_url}",
             })
             continue
 
@@ -516,7 +517,7 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
             'remaining_seconds': result.remaining_seconds,
             'detail_url': reverse('test_result_detail', args=[result.id]),
             'archive_url': f"{reverse('teacher_archived_results', args=[result.student_id, result.test_id])}?next={page_url}",
-            'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={page_url}",
+            'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={page_url}" if result.completed_at else '',
         })
 
     return JsonResponse({
@@ -689,10 +690,40 @@ def student_results(request):
     
     results = Result.objects.filter(
         student=request.user
-    ).select_related('test__subject').order_by('-completed_at')
+    ).select_related('test__subject').order_by('-completed_at', '-started_at')
     
     context = {'results': results}
     return render(request, 'users/student/results.html', context)
+
+
+@login_required
+def student_results_live_status(request):
+    """Live updates for the student results page."""
+    from results.models import Result
+
+    if not request.user.is_student:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    results = Result.objects.filter(
+        student=request.user
+    ).select_related('test__subject').order_by('-completed_at', '-started_at')
+
+    payload = []
+    for result in results:
+        payload.append({
+            'id': result.id,
+            'subject_name': result.test.subject.name,
+            'test_title': result.test.title,
+            'completed': bool(result.completed_at),
+            'completed_at_display': timezone.localtime(result.completed_at).strftime('%d.%m.%Y %H:%M') if result.completed_at else '',
+            'correct_answers_count': result.correct_answers_count,
+            'total_questions': result.total_questions,
+            'grade': result.grade,
+            'remaining_seconds': result.remaining_seconds,
+            'detail_url': reverse('test_result_detail', args=[result.id]),
+        })
+
+    return JsonResponse({'results': payload})
 
 
 # ==================== Profile Views ====================
@@ -733,6 +764,8 @@ def profile_view(request):
 @login_required
 def user_profile_detail(request, user_id):
     """Просмотр профиля другого пользователя."""
+    from chat.presence import get_last_seen_at, is_user_online
+
     viewed_user = get_object_or_404(
         User.objects.select_related('profile', 'profile__group'),
         id=user_id,
@@ -752,5 +785,7 @@ def user_profile_detail(request, user_id):
         'viewed_user': viewed_user,
         'viewed_profile': viewed_profile,
         'back_url': back_url,
+        'viewed_user_is_online': is_user_online(viewed_user.id),
+        'viewed_user_last_seen_at': get_last_seen_at(viewed_user),
     }
     return render(request, 'users/profile_detail.html', context)

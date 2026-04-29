@@ -35,4 +35,5 @@ urlpatterns = [
     path('student/subjects/', views.student_subjects, name='student_subjects'),
     path('student/subjects/<int:subject_id>/', views.student_subject_tests, name='student_subject_tests'),
     path('student/results/', views.student_results, name='student_results'),
+    path('student/results/live-status/', views.student_results_live_status, name='student_results_live_status'),
 ]

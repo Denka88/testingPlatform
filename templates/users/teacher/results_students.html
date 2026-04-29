@@ -176,14 +176,21 @@
                                            class="btn btn-secondary btn-sm">
                                             Архив
                                         </a>
+                                        {% if result.completed_at %}
                                         <a href="{% url 'test_result_reset' result.id %}?next={{ request.path }}"
                                            class="btn btn-secondary btn-sm"
                                            onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
                                             Сбросить
                                         </a>
+                                        {% endif %}
                                     </div>
                                 {% else %}
-                                    <span class="text-muted">—</span>
+                                    <div class="actions-cell">
+                                        <a href="{% url 'teacher_archived_results' student.id test.id %}?next={{ request.path }}"
+                                           class="btn btn-secondary btn-sm">
+                                            Архив
+                                        </a>
+                                    </div>
                                 {% endif %}
                             </td>
                         </tr>
@@ -379,6 +386,18 @@
         background-color: var(--bg-surface-tertiary);
     }
 
+    .row-no-result .actions-cell .btn {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+
+    .row-no-result .actions-cell .btn:hover {
+        background-color: var(--color-primary);
+        color: white;
+        border-color: var(--color-primary);
+    }
+
     .stats-summary {
         display: flex;
         gap: 16px;
@@ -480,23 +499,29 @@
         }
 
         function buildActionsMarkup(result) {
+            const resetAction = result.reset_url
+                ? `<a href="${escapeHtml(result.reset_url)}" class="btn btn-secondary btn-sm" onclick="return confirmAction('\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442? \u0421\u0442\u0443\u0434\u0435\u043D\u0442 \u0441\u043C\u043E\u0436\u0435\u0442 \u043F\u0440\u043E\u0439\u0442\u0438 \u0442\u0435\u0441\u0442 \u0437\u0430\u043D\u043E\u0432\u043E.')">\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C</a>`
+                : '';
+
             return `
                 <div class="actions-cell">
                     <a href="${escapeHtml(result.detail_url)}" class="btn btn-secondary btn-sm">\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440</a>
                     <a href="${escapeHtml(result.archive_url)}" class="btn btn-secondary btn-sm">\u0410\u0440\u0445\u0438\u0432</a>
-                    <a href="${escapeHtml(result.reset_url)}" class="btn btn-secondary btn-sm" onclick="return confirmAction('\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442? \u0421\u0442\u0443\u0434\u0435\u043D\u0442 \u0441\u043C\u043E\u0436\u0435\u0442 \u043F\u0440\u043E\u0439\u0442\u0438 \u0442\u0435\u0441\u0442 \u0437\u0430\u043D\u043E\u0432\u043E.')">\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C</a>
+                    ${resetAction}
                 </div>
             `;
         }
 
-        function setNoResultState(row) {
+        function setNoResultState(row, result) {
             row.classList.add('row-no-result');
             delete row.dataset.liveResultId;
             delete row.dataset.remainingSeconds;
             row.children[1].innerHTML = '<span class="text-muted">—</span>';
             row.children[2].innerHTML = '<span class="text-muted">—</span>';
             row.children[3].innerHTML = '<span class="text-muted">—</span>';
-            row.children[4].innerHTML = '<span class="text-muted">—</span>';
+            row.children[4].innerHTML = result.archive_url
+                ? `<div class="actions-cell"><a href="${escapeHtml(result.archive_url)}" class="btn btn-secondary btn-sm">Архив</a></div>`
+                : '<span class="text-muted">—</span>';
         }
 
         function setActiveState(row, result) {
@@ -548,7 +573,7 @@
                     if (!row) return;
 
                     if (!result.has_result) {
-                        setNoResultState(row);
+                        setNoResultState(row, result);
                     } else if (result.completed) {
                         setCompletedState(row, result);
                     } else {

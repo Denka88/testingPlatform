@@ -33,7 +33,18 @@
                         {{ viewed_user.last_name|default:"" }} {{ viewed_user.first_name|default:"" }} {{ viewed_user.patronymic|default:"" }}
                     </h3>
                     <p class="profile-username">@{{ viewed_user.username }}</p>
-                    <span class="profile-role">{{ viewed_user.get_role_display }}</span>
+                    <div class="profile-meta-row">
+                        <span class="profile-role">{{ viewed_user.get_role_display }}</span>
+                        <span class="profile-presence {% if viewed_user_is_online %}is-online{% endif %}">
+                            {% if viewed_user_is_online %}
+                                В сети
+                            {% elif viewed_user_last_seen_at %}
+                                Был(а) в сети {{ viewed_user_last_seen_at|date:"d.m.Y H:i" }}
+                            {% else %}
+                                Не в сети
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -149,6 +160,23 @@
         background-color: var(--color-primary-light);
         color: var(--color-primary);
         font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .profile-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .profile-presence {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+    }
+
+    .profile-presence.is-online {
+        color: var(--color-primary);
         font-weight: 600;
     }
 
