@@ -6,11 +6,10 @@
 {% block topbar_title %}Результат тестирования{% endblock %}
 
 {% block content %}
-<div class="result-detail-container"
+<div class="result-detail-page"
      data-live-result-id="{{ result.id }}"
-     data-live-kind="detail"
      {% if not result.completed_at %}data-remaining-seconds="{{ result.remaining_seconds|default_if_none:'' }}"{% endif %}>
-    <div class="result-header">
+    <div class="result-toolbar">
         <button onclick="history.back()" class="btn btn-secondary btn-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -20,18 +19,18 @@
         </button>
     </div>
 
-    <div class="result-card-main">
-        <div class="result-card-header">
-            <div class="result-main-info">
-                <h1 class="result-title">{{ result.test.title }}</h1>
-                <p class="result-subject">{{ result.test.subject.name }}</p>
+    <section class="result-summary card">
+        <div class="result-summary__header">
+            <div>
+                <h1 class="result-summary__title">{{ result.test.title }}</h1>
+                <p class="result-summary__subtitle">{{ result.test.subject.name }}</p>
             </div>
             {% if result.completed_at and result.grade %}
-                <div class="result-grade-main grade-{{ result.grade }}" data-result-main-grade>{{ result.grade }}</div>
+                <div class="result-summary__grade grade-{{ result.grade }}" data-result-main-grade>{{ result.grade }}</div>
             {% elif not result.completed_at %}
-                <div class="result-grade-main result-grade-timer" data-result-main-grade>{{ result.remaining_seconds|format_timer }}</div>
+                <div class="result-summary__grade result-summary__timer" data-result-main-grade>{{ result.remaining_seconds|format_timer }}</div>
             {% else %}
-                <div class="result-grade-main result-grade-timer" data-result-main-grade>—</div>
+                <div class="result-summary__grade result-summary__timer" data-result-main-grade>—</div>
             {% endif %}
         </div>
 
@@ -42,11 +41,15 @@
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Дата</span>
-                <span class="result-stat-value" data-detail-date>{% if result.completed_at %}{{ result.completed_at|date:"d.m.Y H:i" }}{% endif %}</span>
+                <span class="result-stat-value" data-detail-date>
+                    {% if result.completed_at %}{{ result.completed_at|date:"d.m.Y H:i" }}{% else %}В процессе{% endif %}
+                </span>
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Время прохождения</span>
-                <span class="result-stat-value" data-detail-duration>{% if result.completed_at %}{{ result.duration_seconds|format_duration }}{% else %}{{ result.remaining_seconds|format_timer }}{% endif %}</span>
+                <span class="result-stat-value" data-detail-duration>
+                    {% if result.completed_at %}{{ result.duration_seconds|format_duration }}{% else %}{{ result.remaining_seconds|format_timer }}{% endif %}
+                </span>
             </div>
             <div class="result-stat-card">
                 <span class="result-stat-label">Правильно</span>
@@ -64,79 +67,85 @@
             </div>
             {% if user.is_teacher %}
             <div class="result-stat-card">
+                <span class="result-stat-label">Устройство</span>
+                <span class="result-stat-value" data-detail-device>{{ result.device_type_display }}</span>
+            </div>
+            <div class="result-stat-card">
                 <span class="result-stat-label">Переключения вкладок</span>
                 <span class="result-stat-value">{{ result.tab_switches_count|default:0 }}</span>
             </div>
             {% endif %}
         </div>
-    </div>
+    </section>
 
-    <div class="card">
+    <section class="card">
         <div class="card-header">
             <h2 class="card-title">Ответы</h2>
         </div>
         <div class="card-body" id="resultAnswersBody" data-answers-loaded="{% if result.completed_at %}true{% else %}false{% endif %}">
             {% include 'tests/_result_answers.html' %}
         </div>
-    </div>
+    </section>
 
     {% if user.is_teacher %}
-    <div class="card mt-3" id="liveGradeCard" {% if not result.completed_at %}hidden{% endif %}>
-        <div class="card-header">
-            <h2 class="card-title">Изменить оценку</h2>
-        </div>
-        <div class="card-body">
-            <form id="gradeForm" data-result-id="{{ result.id }}">
-                {% csrf_token %}
-                <div class="grade-selector">
-                    <input type="radio" name="grade" value="2" id="grade2" class="grade-input" {% if result.grade == 2 %}checked{% endif %}>
-                    <label for="grade2" class="grade-option grade-2">2</label>
-
-                    <input type="radio" name="grade" value="3" id="grade3" class="grade-input" {% if result.grade == 3 %}checked{% endif %}>
-                    <label for="grade3" class="grade-option grade-3">3</label>
-
-                    <input type="radio" name="grade" value="4" id="grade4" class="grade-input" {% if result.grade == 4 %}checked{% endif %}>
-                    <label for="grade4" class="grade-option grade-4">4</label>
-
-                    <input type="radio" name="grade" value="5" id="grade5" class="grade-input" {% if result.grade == 5 %}checked{% endif %}>
-                    <label for="grade5" class="grade-option grade-5">5</label>
-                </div>
-                <button type="submit" class="btn btn-primary mt-2">Сохранить оценку</button>
-            </form>
-        </div>
-    </div>
-
-    <div class="card mt-3" id="liveArchiveCard">
-        <div class="card-header">
-            <h2 class="card-title">Архив</h2>
-        </div>
-        <div class="card-body">
-            <a href="{{ archive_url }}" class="btn btn-secondary">Предыдущие попытки ({{ archived_results_count }})</a>
-        </div>
-    </div>
-
-    <div id="liveResetMount">
-        {% if result.completed_at %}
-        <div class="card mt-3" id="liveResetCard">
+    <div class="teacher-tools">
+        <section class="card" id="liveGradeCard" {% if not result.completed_at %}hidden{% endif %}>
             <div class="card-header">
-                <h2 class="card-title">Сбросить результат</h2>
+                <h2 class="card-title">Изменить оценку</h2>
             </div>
             <div class="card-body">
-                <p class="mb-3 reset-description">
-                    После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
-                </p>
-                <a href="{% url 'test_result_reset' result.id %}?next={{ reset_return_url|urlencode }}"
-                   class="btn btn-danger"
-                   onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="1 4 1 10 7 10"></polyline>
-                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                    </svg>
-                    Сбросить результат
-                </a>
+                <form id="gradeForm" data-result-id="{{ result.id }}">
+                    {% csrf_token %}
+                    <div class="grade-selector">
+                        <input type="radio" name="grade" value="2" id="grade2" class="grade-input" {% if result.grade == 2 %}checked{% endif %}>
+                        <label for="grade2" class="grade-option grade-2">2</label>
+
+                        <input type="radio" name="grade" value="3" id="grade3" class="grade-input" {% if result.grade == 3 %}checked{% endif %}>
+                        <label for="grade3" class="grade-option grade-3">3</label>
+
+                        <input type="radio" name="grade" value="4" id="grade4" class="grade-input" {% if result.grade == 4 %}checked{% endif %}>
+                        <label for="grade4" class="grade-option grade-4">4</label>
+
+                        <input type="radio" name="grade" value="5" id="grade5" class="grade-input" {% if result.grade == 5 %}checked{% endif %}>
+                        <label for="grade5" class="grade-option grade-5">5</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">Сохранить оценку</button>
+                </form>
             </div>
+        </section>
+
+        <section class="card" id="liveArchiveCard">
+            <div class="card-header">
+                <h2 class="card-title">Архив</h2>
+            </div>
+            <div class="card-body">
+                <a href="{{ archive_url }}" class="btn btn-secondary">Предыдущие попытки ({{ archived_results_count }})</a>
+            </div>
+        </section>
+
+        <div id="liveResetMount">
+            {% if result.completed_at %}
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Сбросить результат</h2>
+                </div>
+                <div class="card-body">
+                    <p class="reset-description">
+                        После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
+                    </p>
+                    <a href="{% url 'test_result_reset' result.id %}?next={{ reset_return_url|urlencode }}"
+                       class="btn btn-danger"
+                       onclick="return confirmAction(event, 'Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                        Сбросить результат
+                    </a>
+                </div>
+            </section>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
     {% endif %}
 </div>
@@ -144,56 +153,76 @@
 
 {% block extra_css %}
 <style>
-    .result-detail-container {
+    .result-detail-page {
         width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
     }
 
-    .result-header {
-        margin-bottom: 20px;
+    .result-toolbar {
+        display: flex;
+        align-items: center;
     }
 
-    .result-card-main {
-        background-color: var(--bg-surface);
-        border-radius: var(--border-radius-lg);
-        border: 1px solid var(--border-color);
+    .result-summary {
         padding: 24px;
-        margin-bottom: 24px;
     }
 
-    .result-card-header {
+    .result-summary__header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
+        align-items: flex-start;
+        gap: 20px;
         padding-bottom: 24px;
+        margin-bottom: 24px;
         border-bottom: 1px solid var(--border-color);
     }
 
-    .result-title {
-        font-size: 1.5rem;
+    .result-summary__title {
+        margin: 0 0 8px;
+        font-size: 2rem;
         font-weight: 700;
         color: var(--text-primary);
-        margin-bottom: 8px;
     }
 
-    .result-subject {
+    .result-summary__subtitle {
+        margin: 0;
         color: var(--text-secondary);
-        font-size: 0.9375rem;
+        font-size: 0.95rem;
+    }
+
+    .result-summary__grade {
+        min-width: 92px;
+        min-height: 92px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        border-radius: var(--border-radius-lg);
+        background-color: var(--bg-surface-secondary);
+        font-size: 2rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .result-summary__timer {
+        color: var(--text-primary);
     }
 
     .result-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 16px;
     }
 
     .result-stat-card {
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        padding: 16px;
-        background-color: var(--bg-surface-secondary);
+        gap: 8px;
+        padding: 18px;
         border-radius: var(--border-radius);
+        background-color: var(--bg-surface-secondary);
     }
 
     .result-stat-label {
@@ -207,19 +236,10 @@
         color: var(--text-primary);
     }
 
-    .result-grade-main {
-        min-width: 88px;
-        padding: 18px 20px;
-        border-radius: var(--border-radius);
-        text-align: center;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        background-color: var(--bg-surface-secondary);
-    }
-
-    .result-grade-timer {
-        color: var(--text-primary);
+    .teacher-tools {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
     }
 
     .answer-review {
@@ -237,6 +257,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
         margin-bottom: 12px;
     }
 
@@ -272,6 +293,39 @@
         margin-bottom: 16px;
     }
 
+    .question-review-image,
+    .question-review-code {
+        margin-bottom: 16px;
+    }
+
+    .question-review-image img {
+        display: block;
+        max-width: 100%;
+        max-height: 320px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        object-fit: contain;
+        background-color: var(--bg-surface);
+    }
+
+    .question-review-code {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .question-review-code pre {
+        margin: 0;
+        padding: 16px;
+        overflow-x: auto;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
     .answer-review-answers {
         display: flex;
         flex-direction: column;
@@ -305,14 +359,10 @@
     }
 
     .review-answer-tag.correct {
-        background-color: var(--bg-surface);
-        color: var(--text-primary);
         border-color: var(--color-success);
     }
 
     .review-answer-tag.incorrect {
-        background-color: var(--bg-surface);
-        color: var(--text-primary);
         border-color: var(--color-error);
     }
 
@@ -345,6 +395,7 @@
     .grade-selector {
         display: flex;
         gap: 12px;
+        flex-wrap: wrap;
     }
 
     .grade-input {
@@ -352,8 +403,8 @@
     }
 
     .grade-option {
-        width: 50px;
-        height: 50px;
+        width: 54px;
+        height: 54px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -362,11 +413,11 @@
         font-size: 1.25rem;
         cursor: pointer;
         border: 2px solid transparent;
-        transition: all 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
 
     .grade-option:hover {
-        transform: scale(1.1);
+        transform: scale(1.06);
     }
 
     .grade-input:checked + .grade-option {
@@ -375,29 +426,34 @@
     }
 
     .reset-description {
+        margin-bottom: 16px;
         color: var(--text-secondary);
         font-size: 0.9375rem;
     }
 
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
+    @media (max-width: 900px) {
+        .result-summary__header {
+            flex-direction: column;
+            align-items: stretch;
         }
-        to {
-            transform: translateX(0);
-            opacity: 1;
+
+        .result-summary__grade {
+            width: 92px;
         }
     }
 
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
+    @media (max-width: 600px) {
+        .result-summary {
+            padding: 18px;
         }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
+
+        .result-stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .answer-review-header {
+            flex-direction: column;
+            align-items: flex-start;
         }
     }
 </style>
@@ -406,7 +462,7 @@
 {% block extra_js %}
 <script>
     (function() {
-        const container = document.querySelector('[data-live-kind="detail"]');
+        const container = document.querySelector('[data-live-result-id]');
         if (!container) return;
 
         const liveUrl = '{% url "teacher_results_live_status" %}';
@@ -430,20 +486,18 @@
         }
 
         function buildResetCardMarkup(resetUrl) {
-            if (!resetUrl) {
-                return '';
-            }
+            if (!resetUrl) return '';
 
             return `
-                <div class="card mt-3" id="liveResetCard">
+                <section class="card">
                     <div class="card-header">
                         <h2 class="card-title">Сбросить результат</h2>
                     </div>
                     <div class="card-body">
-                        <p class="mb-3 reset-description">
+                        <p class="reset-description">
                             После сброса студент сможет пройти тест заново. Все текущие ответы будут удалены.
                         </p>
-                        <a href="${resetUrl}" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
+                        <a href="${resetUrl}" class="btn btn-danger" onclick="return confirmAction(event, 'Вы уверены, что хотите сбросить результат студента {{ result.student.last_name }} {{ result.student.first_name }}?');">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="1 4 1 10 7 10"></polyline>
                                 <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
@@ -451,7 +505,7 @@
                             Сбросить результат
                         </a>
                     </div>
-                </div>
+                </section>
             `;
         }
 
@@ -462,9 +516,10 @@
             const dateEl = container.querySelector('[data-detail-date]');
             const durationEl = container.querySelector('[data-detail-duration]');
             const detailGradeEl = container.querySelector('[data-detail-grade]');
+            const detailDeviceEl = container.querySelector('[data-detail-device]');
 
             if (mainGradeEl) {
-                mainGradeEl.className = 'result-grade-main result-grade-timer';
+                mainGradeEl.className = 'result-summary__grade result-summary__timer';
                 mainGradeEl.textContent = formatTimer(remainingSeconds);
             }
 
@@ -481,8 +536,12 @@
                 detailGradeEl.textContent = formatTimer(remainingSeconds);
             }
 
+            if (detailDeviceEl) {
+                detailDeviceEl.textContent = 'Не определено';
+            }
+
             if (liveGradeCard) {
-                liveGradeCard.setAttribute('hidden', 'hidden');
+                liveGradeCard.hidden = true;
             }
 
             if (liveResetMount) {
@@ -490,7 +549,7 @@
             }
         }
 
-        function setCompletedState(result) {
+        function setCompletedState(resultData) {
             container.dataset.remainingSeconds = '';
 
             const mainGradeEl = container.querySelector('[data-result-main-grade]');
@@ -498,45 +557,50 @@
             const durationEl = container.querySelector('[data-detail-duration]');
             const answersEl = container.querySelector('[data-result-answers]');
             const detailGradeEl = container.querySelector('[data-detail-grade]');
+            const detailDeviceEl = container.querySelector('[data-detail-device]');
 
             if (mainGradeEl) {
-                if (result.grade) {
-                    mainGradeEl.className = `result-grade-main grade-${result.grade}`;
-                    mainGradeEl.textContent = result.grade;
+                if (resultData.grade) {
+                    mainGradeEl.className = `result-summary__grade grade-${resultData.grade}`;
+                    mainGradeEl.textContent = resultData.grade;
                 } else {
-                    mainGradeEl.className = 'result-grade-main result-grade-timer';
+                    mainGradeEl.className = 'result-summary__grade result-summary__timer';
                     mainGradeEl.textContent = '—';
                 }
             }
 
             if (dateEl) {
-                dateEl.textContent = result.completed_at_display || '—';
+                dateEl.textContent = resultData.completed_at_display || '—';
             }
 
             if (durationEl) {
-                durationEl.textContent = result.duration_seconds == null ? '—' : formatDuration(result.duration_seconds);
+                durationEl.textContent = resultData.duration_seconds == null ? '—' : formatDuration(resultData.duration_seconds);
             }
 
             if (answersEl) {
-                answersEl.textContent = `${result.correct_answers_count} / ${result.total_questions}`;
+                answersEl.textContent = `${resultData.correct_answers_count} / ${resultData.total_questions}`;
             }
 
             if (detailGradeEl) {
-                if (result.grade) {
-                    detailGradeEl.className = `result-stat-value grade-value grade-${result.grade}`;
-                    detailGradeEl.textContent = result.grade;
+                if (resultData.grade) {
+                    detailGradeEl.className = `result-stat-value grade-value grade-${resultData.grade}`;
+                    detailGradeEl.textContent = resultData.grade;
                 } else {
                     detailGradeEl.className = 'result-stat-value';
                     detailGradeEl.textContent = '—';
                 }
             }
 
+            if (detailDeviceEl) {
+                detailDeviceEl.textContent = resultData.device_type_display || 'Не определено';
+            }
+
             if (liveGradeCard) {
-                liveGradeCard.removeAttribute('hidden');
+                liveGradeCard.hidden = false;
             }
 
             if (liveResetMount) {
-                liveResetMount.innerHTML = buildResetCardMarkup(result.reset_url);
+                liveResetMount.innerHTML = buildResetCardMarkup(resultData.reset_url);
             }
 
             if (answersBody && answersBody.dataset.answersLoaded !== 'true') {
@@ -578,13 +642,13 @@
                 if (!response.ok) return;
 
                 const payload = await response.json();
-                const result = payload.results[0];
-                if (!result) return;
+                const resultData = payload.results[0];
+                if (!resultData) return;
 
-                if (result.completed) {
-                    setCompletedState(result);
+                if (resultData.completed) {
+                    setCompletedState(resultData);
                 } else {
-                    setActiveState(result.remaining_seconds ?? 0);
+                    setActiveState(resultData.remaining_seconds ?? 0);
                 }
             } catch (error) {
                 console.error('Live detail refresh failed', error);
@@ -597,56 +661,55 @@
         setInterval(refreshStatus, 5000);
     })();
 </script>
-<script>
+
 {% if user.is_teacher %}
-(function() {
-    const gradeForm = document.getElementById('gradeForm');
-    if (!gradeForm) {
-        return;
-    }
+<script>
+    (function() {
+        const gradeForm = document.getElementById('gradeForm');
+        if (!gradeForm) return;
 
-    gradeForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+        gradeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        const formData = new FormData();
-        const grade = this.querySelector('input[name="grade"]:checked');
-
-        if (!grade) {
-            showNotification('Выберите оценку', 'error');
-            return;
-        }
-
-        formData.append('grade', grade.value);
-
-        fetch('{% url "test_result_update_grade" result.id %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value
+            const grade = this.querySelector('input[name="grade"]:checked');
+            if (!grade) {
+                showNotification('Выберите оценку', 'error');
+                return;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
+
+            const formData = new FormData();
+            formData.append('grade', grade.value);
+
+            fetch('{% url "test_result_update_grade" result.id %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (!data.success) {
+                    showNotification('Ошибка: ' + (data.error || 'Не удалось сохранить оценку'), 'error');
+                    return;
+                }
+
                 document.querySelectorAll('[data-detail-grade], [data-result-main-grade]').forEach((el) => {
-                    if (el.dataset.detailGrade !== undefined) {
+                    if (el.hasAttribute('data-detail-grade')) {
                         el.className = `result-stat-value grade-value grade-${data.grade}`;
                     } else {
-                        el.className = `result-grade-main grade-${data.grade}`;
+                        el.className = `result-summary__grade grade-${data.grade}`;
                     }
                     el.textContent = data.grade;
                 });
 
                 showNotification('Оценка сохранена', 'success');
-            } else {
-                showNotification('Ошибка: ' + data.error, 'error');
-            }
-        })
-        .catch(err => {
-            showNotification('Ошибка сети: ' + err, 'error');
+            })
+            .catch((error) => {
+                showNotification('Ошибка сети: ' + error, 'error');
+            });
         });
-    });
-})();
-{% endif %}
+    })();
 </script>
+{% endif %}
 {% endblock %}

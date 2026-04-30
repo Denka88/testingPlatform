@@ -268,8 +268,112 @@ function showNotification(message, type) {
 }
 
 // ==================== Подтверждение действий ====================
-function confirmAction(message) {
-    return confirm(message || 'Вы уверены?');
+let activeConfirmCleanup = null;
+
+function showConfirmDialog(message, options) {
+    const overlay = document.getElementById('globalConfirmOverlay');
+    const textEl = document.getElementById('globalConfirmText');
+    const titleEl = document.getElementById('globalConfirmTitle');
+    const acceptBtn = document.getElementById('globalConfirmAccept');
+    const cancelBtn = document.getElementById('globalConfirmCancel');
+
+    if (!overlay || !textEl || !titleEl || !acceptBtn || !cancelBtn) {
+        return Promise.resolve(window.confirm(message || '\u0412\u044b \u0443\u0432\u0435\u0440\u0435\u043d\u044b?'));
+    }
+
+    if (activeConfirmCleanup) {
+        activeConfirmCleanup(false);
+    }
+
+    const config = options || {};
+    titleEl.textContent = config.title || '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435';
+    textEl.textContent = message || '\u0412\u044b \u0443\u0432\u0435\u0440\u0435\u043d\u044b?';
+    acceptBtn.textContent = config.confirmText || '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c';
+    cancelBtn.textContent = config.cancelText || '\u041e\u0442\u043c\u0435\u043d\u0430';
+    overlay.hidden = false;
+
+    return new Promise((resolve) => {
+        function finish(result) {
+            overlay.hidden = true;
+            document.removeEventListener('keydown', handleKeydown);
+            overlay.removeEventListener('click', handleOverlayClick);
+            acceptBtn.removeEventListener('click', handleAccept);
+            cancelBtn.removeEventListener('click', handleCancel);
+            activeConfirmCleanup = null;
+            resolve(result);
+        }
+
+        function handleAccept() {
+            finish(true);
+        }
+
+        function handleCancel() {
+            finish(false);
+        }
+
+        function handleOverlayClick(event) {
+            if (event.target === overlay) {
+                finish(false);
+            }
+        }
+
+        function handleKeydown(event) {
+            if (event.key === 'Escape') {
+                finish(false);
+            }
+        }
+
+        activeConfirmCleanup = finish;
+
+        acceptBtn.addEventListener('click', handleAccept);
+        cancelBtn.addEventListener('click', handleCancel);
+        overlay.addEventListener('click', handleOverlayClick);
+        document.addEventListener('keydown', handleKeydown);
+        acceptBtn.focus();
+    });
+}
+
+function confirmAction(eventOrMessage, maybeMessage, options) {
+    let event = null;
+    let message = maybeMessage;
+
+    if (typeof eventOrMessage === 'string' || eventOrMessage == null) {
+        message = eventOrMessage || maybeMessage;
+    } else {
+        event = eventOrMessage;
+    }
+
+    if (!event) {
+        return false;
+    }
+
+    event.preventDefault();
+
+    const target = event.currentTarget;
+    const href = target && target.getAttribute ? target.getAttribute('href') : null;
+    const form = target && target.closest ? target.closest('form') : null;
+    const submitter = target && target.matches && target.matches('button, input[type="submit"]') ? target : null;
+
+    showConfirmDialog(message || '\u0412\u044b \u0443\u0432\u0435\u0440\u0435\u043d\u044b?', options).then((confirmed) => {
+        if (!confirmed) {
+            return;
+        }
+
+        if (href) {
+            window.location.href = href;
+            return;
+        }
+
+        if (form) {
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter || undefined);
+            } else {
+                form.submit();
+            }
+        }
+    });
+
+    return false;
 }
 
 // ==================== Утилиты ====================

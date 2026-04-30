@@ -7,7 +7,6 @@
 
 {% block content %}
 <div class="results-container">
-    <!-- Хлебные крошки -->
     <div class="breadcrumb-nav mb-3">
         <a href="{% url 'teacher_dashboard' %}" class="breadcrumb-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -17,22 +16,15 @@
             Главная
         </a>
         <span class="breadcrumb-sep">/</span>
-        <a href="{% url 'teacher_results_subjects' %}" class="breadcrumb-link">
-            Результаты
-        </a>
+        <a href="{% url 'teacher_results_subjects' %}" class="breadcrumb-link">Результаты</a>
         <span class="breadcrumb-sep">/</span>
-        <a href="{% url 'teacher_results_groups' subject.id %}" class="breadcrumb-link">
-            {{ subject.name }}
-        </a>
+        <a href="{% url 'teacher_results_groups' subject.id %}" class="breadcrumb-link">{{ subject.name }}</a>
         <span class="breadcrumb-sep">/</span>
-        <a href="{% url 'teacher_results_tests' subject.id group.id %}" class="breadcrumb-link">
-            {{ group.name }}
-        </a>
+        <a href="{% url 'teacher_results_tests' subject.id group.id %}" class="breadcrumb-link">{{ group.name }}</a>
         <span class="breadcrumb-sep">/</span>
         <span class="breadcrumb-current">{{ test.title }}</span>
     </div>
 
-    <!-- Заголовок теста -->
     <div class="test-info-card card mb-3">
         <div class="test-info-header">
             <h2 class="test-info-title">{{ test.title }}</h2>
@@ -69,7 +61,6 @@
         </div>
     </div>
 
-    <!-- Поиск и фильтры -->
     <div class="filters-bar card mb-3">
         <form method="get" class="filters-form">
             <div class="filters-row">
@@ -104,16 +95,16 @@
         </form>
     </div>
 
-    <!-- Таблица результатов -->
     <div class="card">
         <div class="card-body">
             <div class="table-container">
                 <table class="table">
                     <thead>
                         <tr>
-                            <th style="width: 40%;">Студент</th>
+                            <th style="width: 32%;">Студент</th>
                             <th>Дата прохождения</th>
                             <th>Правильные ответы</th>
+                            <th>Устройство</th>
                             <th>Оценка</th>
                             <th>Действия</th>
                         </tr>
@@ -131,14 +122,13 @@
                             <td>
                                 <a href="{% url 'user_profile_detail' student.id %}?next={{ request.get_full_path|urlencode }}" class="student-link">
                                     <div class="student-name">
-                                        {{ student.last_name }} {{ student.first_name }}
-                                        {% if student.patronymic %}{{ student.patronymic }}{% endif %}
+                                        {{ student.last_name }} {{ student.first_name }}{% if student.patronymic %} {{ student.patronymic }}{% endif %}
                                     </div>
                                 </a>
                             </td>
                             <td>
                                 {% if result and result.completed_at %}
-                                    <span class="result-date" data-result-date>{{ result.completed_at|date:"d.m.Y H:i" }}</span>
+                                    <span class="result-date">{{ result.completed_at|date:"d.m.Y H:i" }}</span>
                                 {% elif result %}
                                     <span class="badge badge-draft">В процессе</span>
                                 {% else %}
@@ -147,20 +137,23 @@
                             </td>
                             <td>
                                 {% if result %}
-                                    <span class="answers-count" data-result-answers>
-                                        {{ result.correct_answers_count }} / {{ result.total_questions }}
-                                    </span>
+                                    <span class="answers-count">{{ result.correct_answers_count }} / {{ result.total_questions }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if result %}
+                                    <span class="device-badge">{{ result.device_type_display }}</span>
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if result and result.grade %}
-                                    <span class="grade-badge grade-{{ result.grade }}" data-result-grade>
-                                        {{ result.grade }}
-                                    </span>
+                                    <span class="grade-badge grade-{{ result.grade }}">{{ result.grade }}</span>
                                 {% elif result and not result.completed_at %}
-                                    <span class="remaining-time" data-result-grade>{{ result.remaining_seconds|format_timer }}</span>
+                                    <span class="remaining-time">{{ result.remaining_seconds|format_timer }}</span>
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
@@ -168,28 +161,19 @@
                             <td>
                                 {% if result %}
                                     <div class="actions-cell">
-                                        <a href="{% url 'test_result_detail' result.id %}"
-                                           class="btn btn-secondary btn-sm">
-                                            Просмотр
-                                        </a>
-                                        <a href="{% url 'teacher_archived_results' student.id test.id %}?next={{ request.path }}"
-                                           class="btn btn-secondary btn-sm">
-                                            Архив
-                                        </a>
+                                        <a href="{% url 'test_result_detail' result.id %}" class="btn btn-secondary btn-sm">Просмотр</a>
+                                        <a href="{% url 'teacher_archived_results' student.id test.id %}?next={{ request.path }}" class="btn btn-secondary btn-sm">Архив</a>
                                         {% if result.completed_at %}
                                         <a href="{% url 'test_result_reset' result.id %}?next={{ request.path }}"
                                            class="btn btn-secondary btn-sm"
-                                           onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
+                                           onclick="return confirmAction(event, 'Сбросить результат? Студент сможет пройти тест заново.')">
                                             Сбросить
                                         </a>
                                         {% endif %}
                                     </div>
                                 {% else %}
                                     <div class="actions-cell">
-                                        <a href="{% url 'teacher_archived_results' student.id test.id %}?next={{ request.path }}"
-                                           class="btn btn-secondary btn-sm">
-                                            Архив
-                                        </a>
+                                        <a href="{% url 'teacher_archived_results' student.id test.id %}?next={{ request.path }}" class="btn btn-secondary btn-sm">Архив</a>
                                     </div>
                                 {% endif %}
                             </td>
@@ -197,7 +181,7 @@
                         {% endwith %}
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center">
+                            <td colspan="6" class="text-center">
                                 <div class="empty-state">
                                     <p class="empty-state-text">В группе нет студентов</p>
                                 </div>
@@ -210,7 +194,6 @@
         </div>
     </div>
 
-    <!-- Статистика -->
     <div class="stats-summary mt-3">
         <div class="stats-row">
             <div class="stat-item">
@@ -342,6 +325,7 @@
     .actions-cell {
         display: flex;
         gap: 8px;
+        flex-wrap: wrap;
     }
 
     .student-name {
@@ -367,6 +351,18 @@
     .answers-count {
         color: var(--text-primary);
         font-weight: 500;
+    }
+
+    .device-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 9999px;
+        background-color: var(--bg-surface-secondary);
+        color: var(--text-primary);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border: 1px solid var(--border-color);
     }
 
     .remaining-time {
@@ -465,7 +461,7 @@
         }
 
         table {
-            min-width: 600px;
+            min-width: 760px;
         }
     }
 </style>
@@ -500,13 +496,13 @@
 
         function buildActionsMarkup(result) {
             const resetAction = result.reset_url
-                ? `<a href="${escapeHtml(result.reset_url)}" class="btn btn-secondary btn-sm" onclick="return confirmAction('\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442? \u0421\u0442\u0443\u0434\u0435\u043D\u0442 \u0441\u043C\u043E\u0436\u0435\u0442 \u043F\u0440\u043E\u0439\u0442\u0438 \u0442\u0435\u0441\u0442 \u0437\u0430\u043D\u043E\u0432\u043E.')">\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C</a>`
+                ? `<a href="${escapeHtml(result.reset_url)}" class="btn btn-secondary btn-sm" onclick="return confirmAction(event, 'Сбросить результат? Студент сможет пройти тест заново.')">Сбросить</a>`
                 : '';
 
             return `
                 <div class="actions-cell">
-                    <a href="${escapeHtml(result.detail_url)}" class="btn btn-secondary btn-sm">\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440</a>
-                    <a href="${escapeHtml(result.archive_url)}" class="btn btn-secondary btn-sm">\u0410\u0440\u0445\u0438\u0432</a>
+                    <a href="${escapeHtml(result.detail_url)}" class="btn btn-secondary btn-sm">Просмотр</a>
+                    <a href="${escapeHtml(result.archive_url)}" class="btn btn-secondary btn-sm">Архив</a>
                     ${resetAction}
                 </div>
             `;
@@ -519,7 +515,8 @@
             row.children[1].innerHTML = '<span class="text-muted">—</span>';
             row.children[2].innerHTML = '<span class="text-muted">—</span>';
             row.children[3].innerHTML = '<span class="text-muted">—</span>';
-            row.children[4].innerHTML = result.archive_url
+            row.children[4].innerHTML = '<span class="text-muted">—</span>';
+            row.children[5].innerHTML = result.archive_url
                 ? `<div class="actions-cell"><a href="${escapeHtml(result.archive_url)}" class="btn btn-secondary btn-sm">Архив</a></div>`
                 : '<span class="text-muted">—</span>';
         }
@@ -528,10 +525,11 @@
             row.classList.remove('row-no-result');
             row.dataset.liveResultId = String(result.result_id);
             row.dataset.remainingSeconds = String(Math.max(0, result.remaining_seconds ?? 0));
-            row.children[1].innerHTML = '<span class="badge badge-draft">\u0412 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0435</span>';
+            row.children[1].innerHTML = '<span class="badge badge-draft">В процессе</span>';
             row.children[2].innerHTML = `<span class="answers-count">${result.correct_answers_count} / ${result.total_questions}</span>`;
-            row.children[3].innerHTML = `<span class="remaining-time">${formatTimer(result.remaining_seconds ?? 0)}</span>`;
-            row.children[4].innerHTML = buildActionsMarkup(result);
+            row.children[3].innerHTML = `<span class="device-badge">${escapeHtml(result.device_type_display || 'Не определено')}</span>`;
+            row.children[4].innerHTML = `<span class="remaining-time">${formatTimer(result.remaining_seconds ?? 0)}</span>`;
+            row.children[5].innerHTML = buildActionsMarkup(result);
         }
 
         function setCompletedState(row, result) {
@@ -540,10 +538,11 @@
             row.dataset.remainingSeconds = '';
             row.children[1].innerHTML = `<span class="result-date">${escapeHtml(result.completed_at_display || '—')}</span>`;
             row.children[2].innerHTML = `<span class="answers-count">${result.correct_answers_count} / ${result.total_questions}</span>`;
-            row.children[3].innerHTML = result.grade
+            row.children[3].innerHTML = `<span class="device-badge">${escapeHtml(result.device_type_display || 'Не определено')}</span>`;
+            row.children[4].innerHTML = result.grade
                 ? `<span class="grade-badge grade-${result.grade}">${result.grade}</span>`
                 : '<span class="text-muted">—</span>';
-            row.children[4].innerHTML = buildActionsMarkup(result);
+            row.children[5].innerHTML = buildActionsMarkup(result);
         }
 
         function tickTimers() {
@@ -552,7 +551,7 @@
                 if (Number.isNaN(remaining)) return;
                 const nextRemaining = remaining > 0 ? remaining - 1 : 0;
                 row.dataset.remainingSeconds = String(nextRemaining);
-                row.children[3].innerHTML = `<span class="remaining-time">${formatTimer(nextRemaining)}</span>`;
+                row.children[4].innerHTML = `<span class="remaining-time">${formatTimer(nextRemaining)}</span>`;
             });
         }
 

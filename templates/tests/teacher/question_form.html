@@ -78,7 +78,7 @@
                             {% for answer in question.answers.all %}
                             <div class="answer-row">
                                 <div class="answer-check">
-                                    <input type="{% if question.question_type == 'multiple' %}checkbox{% else %}radio{% endif %}" name="answer_correct[]" value="{{ forloop.counter0 }}" class="form-check-input" {% if answer.is_correct %}checked{% endif %} required>
+                                    <input type="{% if question.question_type == 'multiple' %}checkbox{% else %}radio{% endif %}" name="answer_correct[]" value="{{ forloop.counter0 }}" class="form-check-input" {% if answer.is_correct %}checked{% endif %}>
                                 </div>
                                 <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" value="{{ answer.text }}" required>
                                 <input type="hidden" name="answer_id[]" value="{{ answer.id }}">
@@ -93,7 +93,7 @@
                         {% else %}
                             <div class="answer-row">
                                 <div class="answer-check">
-                                    <input type="radio" name="answer_correct[]" value="0" class="form-check-input" required>
+                                    <input type="radio" name="answer_correct[]" value="0" class="form-check-input">
                                 </div>
                                 <input type="text" class="form-input" name="answer_text[]" placeholder="Вариант ответа" required>
                                 <input type="hidden" name="answer_id[]" value="">
@@ -166,6 +166,7 @@
     const questionType = document.getElementById('question_type');
     const answersContainer = document.getElementById('answersContainer');
     const addAnswerBtn = document.getElementById('addAnswerBtn');
+    const questionForm = document.getElementById('questionForm');
     const removeButtons = answersContainer.querySelectorAll('.remove-answer');
 
     // Показываем кнопку добавления ответа
@@ -240,6 +241,16 @@
                     showNotification('Должно быть минимум 2 варианта ответа', 'warning');
                 }
             });
+        }
+    });
+
+    questionForm.addEventListener('submit', function(e) {
+        const correctInputs = answersContainer.querySelectorAll('.answer-check input');
+        const hasCheckedAnswer = Array.from(correctInputs).some((input) => input.checked);
+
+        if (!hasCheckedAnswer) {
+            e.preventDefault();
+            showNotification('Нужно выбрать хотя бы один правильный ответ', 'warning');
         }
     });
 

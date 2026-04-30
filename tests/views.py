@@ -175,14 +175,15 @@ def teacher_test_delete(request, test_id):
         return redirect('dashboard')
     
     test = get_object_or_404(Test, id=test_id)
+    redirect_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or reverse('teacher_subject_tests', args=[test.subject_id])
     
     if request.user.is_teacher and test.created_by != request.user:
         messages.error(request, 'У вас нет доступа к этому тесту')
-        return redirect('teacher_tests')
+        return redirect(redirect_url)
     
     test.delete()
     messages.success(request, 'Тест удален')
-    return redirect('teacher_tests')
+    return redirect(redirect_url)
 
 
 @login_required
@@ -374,6 +375,11 @@ def test_take(request, test_id):
             test=test,
             total_questions=test.questions.count()
         )
+
+    current_user_agent = request.META.get('HTTP_USER_AGENT', '')[:200]
+    if current_user_agent and result.device_info != current_user_agent:
+        result.device_info = current_user_agent
+        result.save(update_fields=['device_info'])
 
     questions = list(test.questions.prefetch_related('answers').all())
 
@@ -684,6 +690,7 @@ def teacher_results_live_status(request):
             'total_questions': result.total_questions,
             'remaining_seconds': result.remaining_seconds,
             'duration_seconds': result.duration_seconds,
+            'device_type_display': result.device_type_display,
             'reset_url': reset_url,
         })
 

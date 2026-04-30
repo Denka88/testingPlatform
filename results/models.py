@@ -3,6 +3,37 @@ from django.db import models
 from django.utils import timezone
 
 
+def detect_device_type_label(device_info):
+    device_string = (device_info or "").lower()
+    if not device_string:
+        return "Не определено"
+
+    mobile_markers = (
+        "android",
+        "iphone",
+        "ipad",
+        "ipod",
+        "mobile",
+        "windows phone",
+        "opera mini",
+        "blackberry",
+    )
+    if any(marker in device_string for marker in mobile_markers):
+        return "Мобильное устройство"
+
+    desktop_markers = (
+        "windows nt",
+        "macintosh",
+        "linux",
+        "x11",
+        "cros",
+    )
+    if any(marker in device_string for marker in desktop_markers):
+        return "ПК"
+
+    return "Не определено"
+
+
 class Result(models.Model):
     """Результат прохождения теста студентом."""
 
@@ -90,6 +121,10 @@ class Result(models.Model):
         if self.total_questions == 0:
             return 0
         return int((self.correct_answers_count / self.total_questions) * 100)
+
+    @property
+    def device_type_display(self):
+        return detect_device_type_label(self.device_info)
 
 
 class StudentAnswer(models.Model):
@@ -211,6 +246,10 @@ class ArchivedResult(models.Model):
         if self.total_questions == 0:
             return 0
         return int((self.correct_answers_count / self.total_questions) * 100)
+
+    @property
+    def device_type_display(self):
+        return detect_device_type_label(self.device_info)
 
 
 class ArchivedStudentAnswer(models.Model):

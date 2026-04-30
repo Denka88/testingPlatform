@@ -83,7 +83,7 @@
                                     {% if result.completed_at %}
                                     <a href="{% url 'test_result_reset' result.id %}?next={{ request.path }}"
                                        class="btn btn-secondary btn-sm"
-                                       onclick="return confirmAction('Сбросить результат? Студент сможет пройти тест заново.')">
+                                       onclick="return confirmAction(event, 'Сбросить результат? Студент сможет пройти тест заново.')">
                                         Сбросить
                                     </a>
                                     {% endif %}

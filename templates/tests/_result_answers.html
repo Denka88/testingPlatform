@@ -19,6 +19,18 @@
 
     <p class="answer-review-question">{{ item.question.text }}</p>
 
+    {% if item.question.image %}
+    <div class="question-review-image">
+        <img src="{{ item.question.image.url }}" alt="Изображение к вопросу">
+    </div>
+    {% endif %}
+
+    {% if item.question.code_snippet %}
+    <div class="question-review-code">
+        <pre><code>{{ item.question.code_snippet }}</code></pre>
+    </div>
+    {% endif %}
+
     <div class="answer-review-answers">
         <div class="review-answers-section">
             <span class="review-section-label">Выбранный ответ:</span>

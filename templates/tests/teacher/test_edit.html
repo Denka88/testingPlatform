@@ -163,7 +163,7 @@
                         </a>
                         <a href="{% url 'teacher_question_delete' question.id %}"
                            class="btn btn-danger btn-sm"
-                           onclick="return confirmAction('Удалить этот вопрос?')">
+                           onclick="return confirmAction(event, 'Удалить этот вопрос?')">
                             Удалить
                         </a>
                     </div>

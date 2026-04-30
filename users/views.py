@@ -156,6 +156,7 @@ def teacher_dashboard_recent_results(request):
             'completed': bool(result.completed_at),
             'grade': result.grade,
             'remaining_seconds': result.remaining_seconds,
+            'device_type_display': result.device_type_display,
         })
 
     return JsonResponse({'results': payload})
@@ -515,6 +516,7 @@ def teacher_results_students_live_status(request, subject_id, group_id, test_id)
             'correct_answers_count': result.correct_answers_count,
             'total_questions': result.total_questions,
             'remaining_seconds': result.remaining_seconds,
+            'device_type_display': result.device_type_display,
             'detail_url': reverse('test_result_detail', args=[result.id]),
             'archive_url': f"{reverse('teacher_archived_results', args=[result.student_id, result.test_id])}?next={page_url}",
             'reset_url': f"{reverse('test_result_reset', args=[result.id])}?next={page_url}" if result.completed_at else '',

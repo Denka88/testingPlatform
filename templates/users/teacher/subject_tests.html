@@ -121,11 +121,11 @@
                             Редактировать
                         </a>
                         <a href="{% url 'teacher_test_duplicate' test.id %}" class="btn btn-secondary btn-sm" 
-                           onclick="return confirmAction('Создать копию этого теста?')">
+                           onclick="return confirmAction(event, 'Создать копию этого теста?')">
                             Дублировать
                         </a>
-                        <a href="{% url 'teacher_test_delete' test.id %}" class="btn btn-danger btn-sm"
-                           onclick="return confirmAction('Вы уверены, что хотите удалить этот тест?')">
+                        <a href="{% url 'teacher_test_delete' test.id %}?next={{ request.get_full_path|urlencode }}" class="btn btn-danger btn-sm"
+                           onclick="return confirmAction(event, 'Вы уверены, что хотите удалить этот тест?')">
                             Удалить
                         </a>
                     </div>
