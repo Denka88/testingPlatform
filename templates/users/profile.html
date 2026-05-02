@@ -43,7 +43,7 @@
                 
                 <div class="profile-fields">
                     <div class="profile-readonly-grid">
-                        {% if profile %}
+                        {% if profile and profile.role == 'student' %}
                         <div class="profile-readonly-card">
                             <span class="profile-readonly-label">Группа</span>
                             <span class="profile-readonly-value">{{ profile.get_display_group|default:"Не указана" }}</span>
