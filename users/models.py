@@ -106,7 +106,7 @@ class Profile(models.Model):
         verbose_name_plural = 'Профили'
 
     def __str__(self):
-        return f"Профиль: {self.user.last_name} {self.user.first_name}"
+        return f"{self.user.last_name} {self.user.first_name}"
 
     def get_display_group(self):
         """Возвращает группу для отображения с учетом реальной группы."""

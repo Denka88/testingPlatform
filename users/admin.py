@@ -20,7 +20,11 @@ class ProfileInlineForm(forms.ModelForm):
     def clean_group(self):
         """Группа обязательна только для студентов."""
         group = self.cleaned_data.get('group')
-        if self.instance and self.instance.user and self.instance.user.role == UserRole.STUDENT:
+        submitted_role = self.data.get('role') if hasattr(self, 'data') else None
+        effective_role = submitted_role if submitted_role in UserRole.values else None
+        if effective_role is None and self.instance and self.instance.user:
+            effective_role = self.instance.user.role
+        if effective_role == UserRole.STUDENT:
             if not group:
                 raise forms.ValidationError('Для студентов группа обязательна')
         return group
@@ -37,9 +41,18 @@ class ProfileInline(admin.StackedInline):
     form = ProfileInlineForm
     extra = 0
 
+    def _get_effective_role(self, request, obj=None):
+        submitted_role = request.POST.get('role') if request.method == 'POST' else None
+        if submitted_role in UserRole.values:
+            return submitted_role
+        if obj:
+            return obj.role
+        return None
+
     def get_fieldsets(self, request, obj=None):
         """Скрываем поле группы для преподавателей и администраторов."""
-        if obj and obj.role != UserRole.STUDENT:
+        effective_role = self._get_effective_role(request, obj)
+        if effective_role and effective_role != UserRole.STUDENT:
             return (
                 ('Аватар', {'fields': ('avatar',)}),
                 ('О себе', {'fields': ('bio',)}),
@@ -52,7 +65,8 @@ class ProfileInline(admin.StackedInline):
 
     def get_fields(self, request, obj=None):
         """Адаптируем поля в зависимости от роли."""
-        if obj and obj.role != UserRole.STUDENT:
+        effective_role = self._get_effective_role(request, obj)
+        if effective_role and effective_role != UserRole.STUDENT:
             return ('avatar', 'bio')
         return ('avatar', 'group', 'real_group', 'bio')
 
@@ -89,6 +103,36 @@ class UserAdmin(BaseUserAdmin):
     )
 
     inlines = (ProfileInline,)
+
+    def get_inline_instances(self, request, obj=None):
+        if obj is None:
+            return []
+        return super().get_inline_instances(request, obj)
+
+    def save_formset(self, request, form, formset, change):
+        if formset.model is Profile:
+            instances = formset.save(commit=False)
+
+            for deleted_object in formset.deleted_objects:
+                deleted_object.delete()
+
+            existing_profile = getattr(form.instance, 'profile', None)
+            if existing_profile and instances:
+                inline_profile = instances[0]
+                existing_profile.avatar = inline_profile.avatar
+                existing_profile.group = inline_profile.group
+                existing_profile.real_group = inline_profile.real_group
+                existing_profile.bio = inline_profile.bio
+                existing_profile.save()
+                formset.save_m2m()
+                return
+
+            for instance in instances:
+                instance.save()
+            formset.save_m2m()
+            return
+
+        super().save_formset(request, form, formset, change)
 
     def has_profile(self, obj):
         """Показывает статус наличия профиля."""

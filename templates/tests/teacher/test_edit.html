@@ -6,7 +6,6 @@
 
 {% block content %}
 <div class="test-edit-container">
-    <!-- Информация о тесте -->
     <div class="card mb-3">
         <div class="card-header">
             <h2 class="card-title">Информация о тесте</h2>
@@ -22,58 +21,73 @@
             <form method="post" class="test-info-form">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ back_url }}">
-                
+
                 <div class="form-group">
                     <label class="form-label" for="title">Название</label>
-                    <input 
-                        type="text" 
-                        class="form-input" 
-                        id="title" 
-                        name="title" 
+                    <input
+                        type="text"
+                        class="form-input"
+                        id="title"
+                        name="title"
                         value="{{ test.title }}"
                         required
                     >
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label" for="description">Описание</label>
-                    <textarea 
-                        class="form-textarea" 
-                        id="description" 
-                        name="description" 
+                    <textarea
+                        class="form-textarea"
+                        id="description"
+                        name="description"
                         rows="3"
                     >{{ test.description }}</textarea>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label" for="time_limit">Время (мин)</label>
-                        <input 
-                            type="number" 
-                            class="form-input" 
-                            id="time_limit" 
-                            name="time_limit" 
+                        <input
+                            type="number"
+                            class="form-input"
+                            id="time_limit"
+                            name="time_limit"
                             value="{{ test.time_limit }}"
                             min="1"
                         >
                     </div>
-                    
+
                     <div class="form-group">
-                        <label class="form-label" for="groups">Группы</label>
-                        <select class="form-select" id="groups" name="groups" multiple size="4">
-                            {% for group in test.groups.all %}
-                                <option value="{{ group.id }}" selected>{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <p class="form-help">Зажмите Ctrl/Cmd для выбора нескольких групп</p>
+                        <label class="form-label" for="groupSearch">Группы</label>
+                        <div class="group-selector">
+                            <input
+                                type="text"
+                                class="form-input group-search-input"
+                                id="groupSearch"
+                                placeholder="Поиск группы..."
+                                autocomplete="off"
+                            >
+                            <div class="group-options" id="groupOptions">
+                                {% for group in available_groups %}
+                                    <label class="group-option" data-group-option data-group-name="{{ group.name|lower }}">
+                                        <input type="checkbox" name="groups" value="{{ group.id }}" {% if group in test.groups.all %}checked{% endif %}>
+                                        <span class="group-option-name">{{ group.name }}</span>
+                                    </label>
+                                {% empty %}
+                                    <p class="group-empty-state visible" id="groupsEmptyState">У этой дисциплины нет прикреплённых групп.</p>
+                                {% endfor %}
+                            </div>
+                            <p class="form-help">Выберите одну или несколько групп, прикреплённых к дисциплине.</p>
+                            <p class="form-help group-empty-state" id="groupsSearchEmptyState">По вашему запросу группы не найдены.</p>
+                        </div>
                     </div>
                 </div>
-                
+
                 <div class="form-check">
-                    <input 
-                        type="checkbox" 
-                        class="form-check-input" 
-                        id="is_published" 
+                    <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="is_published"
                         name="is_published"
                         {% if test.is_published %}checked{% endif %}
                     >
@@ -81,7 +95,7 @@
                         Опубликован
                     </label>
                 </div>
-                
+
                 <div class="form-check mt-2">
                     <input
                         type="checkbox"
@@ -107,15 +121,14 @@
                         Перемешивать вопросы и варианты ответов
                     </label>
                 </div>
-                
+
                 <div class="form-actions mt-3">
                     <button type="submit" class="btn btn-primary">Сохранить</button>
                 </div>
             </form>
         </div>
     </div>
-    
-    <!-- Вопросы -->
+
     <div class="card">
         <div class="card-header">
             <h2 class="card-title">Вопросы ({{ test.questions.count }})</h2>
@@ -147,14 +160,19 @@
                     <div class="question-answers">
                         {% for answer in question.answers.all %}
                             <div class="answer-item {% if answer.is_correct %}answer-correct{% endif %}">
-                                <span class="answer-marker">{% if answer.is_correct %}<i class="fa-solid fa-check"></i>{% else %}<i class="fa-solid fa-xmark"></i>{% endif %}</span>
+                                <span class="answer-marker">
+                                    {% if answer.is_correct %}
+                                        <i class="fa-solid fa-check"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-xmark"></i>
+                                    {% endif %}
+                                </span>
                                 <span class="answer-text">{{ answer.text }}</span>
                             </div>
                         {% endfor %}
                     </div>
                     <div class="question-actions">
-                        <a href="{% url 'teacher_question_edit' question.id %}"
-                           class="btn btn-secondary btn-sm">
+                        <a href="{% url 'teacher_question_edit' question.id %}" class="btn btn-secondary btn-sm">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -183,6 +201,42 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const searchInput = document.getElementById('groupSearch');
+        const groupOptions = Array.from(document.querySelectorAll('[data-group-option]'));
+        const searchEmptyState = document.getElementById('groupsSearchEmptyState');
+        const permanentEmptyState = document.getElementById('groupsEmptyState');
+
+        if (!searchInput || !groupOptions.length) {
+            return;
+        }
+
+        searchInput.addEventListener('input', () => {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            groupOptions.forEach((option) => {
+                const name = option.dataset.groupName || '';
+                const isVisible = name.includes(searchTerm);
+                option.style.display = isVisible ? '' : 'none';
+                if (isVisible) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (permanentEmptyState) {
+                permanentEmptyState.classList.remove('visible');
+            }
+            if (searchEmptyState) {
+                searchEmptyState.classList.toggle('visible', visibleCount === 0);
+            }
+        });
+    })();
+</script>
 {% endblock %}
 
 {% block extra_css %}
@@ -270,6 +324,65 @@
     .question-actions {
         display: flex;
         justify-content: flex-end;
+    }
+
+    .group-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .group-search-input {
+        min-height: 44px;
+    }
+
+    .group-options {
+        min-height: 200px;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        background: var(--bg-surface-secondary);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .group-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--border-radius-sm);
+        background: var(--bg-surface);
+        border: 1px solid transparent;
+        cursor: pointer;
+    }
+
+    .group-option:hover {
+        border-color: var(--color-primary);
+    }
+
+    .group-option input {
+        margin: 0;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--color-primary);
+    }
+
+    .group-option-name {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .group-empty-state {
+        display: none;
+        margin: 0;
+    }
+
+    .group-empty-state.visible {
+        display: block;
     }
 
     @media (max-width: 600px) {

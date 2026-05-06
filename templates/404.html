@@ -1,0 +1,134 @@
+{% extends 'auth_base.html' %}
+
+{% block title %}Страница не найдена{% endblock %}
+
+{% block content %}
+<div class="error-page-card">
+    <div class="error-page-badge">404</div>
+    <h1 class="error-page-title">Страница не найдена</h1>
+    <p class="error-page-text">
+        Похоже, такой страницы не существует или она была перемещена.
+        Проверьте адрес или вернитесь в приложение.
+    </p>
+    <div class="error-page-actions">
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">На главную</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-primary">Войти</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    body.auth-page {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg-body);
+    }
+
+    .auth-wrapper {
+        min-height: 100vh;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 20px;
+        box-sizing: border-box;
+    }
+
+    .theme-toggle-floating {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 1000;
+        color: var(--text-primary);
+    }
+
+    .theme-toggle-floating:hover {
+        background-color: var(--bg-surface-secondary);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+    }
+
+    .theme-toggle-floating .sun-icon {
+        display: block;
+    }
+
+    .theme-toggle-floating .moon-icon {
+        display: none;
+    }
+
+    [data-theme="dark"] .theme-toggle-floating .sun-icon {
+        display: none;
+    }
+
+    [data-theme="dark"] .theme-toggle-floating .moon-icon {
+        display: block;
+    }
+
+    .error-page-card {
+        width: min(100%, 680px);
+        padding: 48px 40px;
+        border-radius: 28px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-lg);
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .error-page-badge {
+        width: fit-content;
+        margin: 0 auto;
+        padding: 10px 18px;
+        border-radius: 999px;
+        background: rgba(139, 92, 246, 0.14);
+        color: var(--color-primary);
+        font-size: 0.875rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+    }
+
+    .error-page-title {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1.05;
+        color: var(--text-primary);
+    }
+
+    .error-page-text {
+        margin: 0 auto;
+        max-width: 460px;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .error-page-actions {
+        display: flex;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    @media (max-width: 640px) {
+        .error-page-card {
+            padding: 32px 22px;
+            border-radius: 22px;
+        }
+    }
+</style>
+{% endblock %}

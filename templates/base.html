@@ -63,7 +63,7 @@
                     {% if user.is_teacher %}
                         <div class="nav-section">
                             <span class="nav-section-title">Преподавателю</span>
-                            <a href="{% url 'teacher_tests' %}" class="nav-item {% if request.resolver_match.url_name == 'teacher_tests' %}active{% endif %}">
+                            <a href="{% url 'teacher_tests' %}" class="nav-item {% if request.resolver_match.url_name == 'teacher_tests' or request.resolver_match.url_name == 'teacher_subject_tests' or request.resolver_match.url_name == 'teacher_test_edit' or request.resolver_match.url_name == 'teacher_test_duplicate' or request.resolver_match.url_name == 'teacher_test_delete' or request.resolver_match.url_name == 'teacher_question_create' or request.resolver_match.url_name == 'teacher_question_edit' or request.resolver_match.url_name == 'teacher_question_delete' %}active{% endif %}">
                                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>

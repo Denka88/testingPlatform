@@ -15,9 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from testingPlatform import views as project_views
+
+handler404 = 'testingPlatform.views.custom_page_not_found'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,3 +31,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+urlpatterns += [
+    re_path(r'^.*$', project_views.custom_page_not_found),
+]

@@ -15,6 +15,25 @@ from results.models import ArchivedResult, ArchivedStudentAnswer, Result, Studen
 from users.mixins import StaffOrTeacherRequiredMixin
 
 
+def get_available_subjects_for_user(user):
+    from groups.models import Subject
+
+    queryset = Subject.objects.prefetch_related('groups').order_by('name')
+    if user.is_teacher:
+        queryset = queryset.filter(teachers=user)
+    return queryset
+
+
+def build_subject_groups_payload(subjects):
+    return {
+        str(subject.id): [
+            {'id': group.id, 'name': group.name}
+            for group in subject.groups.all().order_by('name')
+        ]
+        for subject in subjects
+    }
+
+
 def build_questions_with_answers(result):
     """Собирает вопросы теста вместе с ответами студента."""
     all_questions = result.test.questions.prefetch_related('answers').all().order_by('id')
@@ -70,81 +89,99 @@ def archive_result_snapshot(result, archived_by):
 
 @login_required
 def teacher_test_create(request):
-    """Создание теста"""
-    from groups.models import Subject, Group
-    
+    """Создание теста."""
     if not request.user.is_teacher and not request.user.is_admin:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
+
+    subjects = list(get_available_subjects_for_user(request.user))
+    subject_groups_payload = build_subject_groups_payload(subjects)
+    form_data = {}
+    selected_group_ids = []
+    selected_subject_id = ''
+
     if request.method == 'POST':
         subject_id = request.POST.get('subject')
+        selected_subject_id = str(subject_id or '')
         title = request.POST.get('title')
         description = request.POST.get('description')
         time_limit = int(request.POST.get('time_limit', 60))
         is_published = request.POST.get('is_published') == 'on'
         show_correct_answers = request.POST.get('show_correct_answers') == 'on'
         shuffle_questions = request.POST.get('shuffle_questions') == 'on'
-        group_ids = request.POST.getlist('groups')
+        selected_group_ids = request.POST.getlist('groups')
+        form_data = request.POST.copy()
 
-        subject = get_object_or_404(Subject, id=subject_id)
+        subject = get_object_or_404(get_available_subjects_for_user(request.user), id=subject_id)
+        allowed_groups = subject.groups.filter(id__in=selected_group_ids).order_by('name')
 
-        test = Test.objects.create(
-            subject=subject,
-            title=title,
-            description=description,
-            time_limit=time_limit,
-            is_published=is_published,
-            show_correct_answers=show_correct_answers,
-            shuffle_questions=shuffle_questions,
-            created_by=request.user
-        )
-        test.groups.set(group_ids)
-        
-        messages.success(request, f'Тест "{title}" создан')
-        return redirect('teacher_test_edit', test_id=test.id)
-    
-    subjects = Subject.objects.filter(teachers=request.user) if request.user.is_teacher else Subject.objects.all()
-    groups = Group.objects.all()
-    
+        if allowed_groups.count() != len({str(group_id) for group_id in selected_group_ids}):
+            messages.error(request, 'Можно выбрать только те группы, которые прикреплены к выбранной дисциплине.')
+        else:
+            test = Test.objects.create(
+                subject=subject,
+                title=title,
+                description=description,
+                time_limit=time_limit,
+                is_published=is_published,
+                show_correct_answers=show_correct_answers,
+                shuffle_questions=shuffle_questions,
+                created_by=request.user
+            )
+            test.groups.set(allowed_groups)
+
+            messages.success(request, f'Тест "{title}" создан')
+            return redirect('teacher_test_edit', test_id=test.id)
+
     context = {
         'subjects': subjects,
-        'groups': groups,
+        'subject_groups_json': subject_groups_payload,
+        'form_data': form_data,
+        'selected_group_ids': selected_group_ids,
+        'selected_subject_id': selected_subject_id,
     }
     return render(request, 'tests/teacher/test_form.html', context)
 
 
 @login_required
 def teacher_test_edit(request, test_id):
-    """Редактирование теста"""
+    """Редактирование теста."""
     if not request.user.is_teacher and not request.user.is_admin:
         messages.error(request, 'У вас нет доступа к этой странице')
         return redirect('dashboard')
-    
-    test = get_object_or_404(Test, id=test_id)
+
+    test = get_object_or_404(Test.objects.select_related('subject').prefetch_related('subject__groups', 'groups'), id=test_id)
     back_url = request.GET.get('next') or request.META.get('HTTP_REFERER') or reverse('teacher_tests')
-    
+
     if request.user.is_teacher and test.created_by != request.user:
         messages.error(request, 'У вас нет доступа к этому тесту')
         return redirect('teacher_tests')
-    
+
     if request.method == 'POST':
         back_url = request.POST.get('next') or back_url
-        test.title = request.POST.get('title')
-        test.description = request.POST.get('description')
-        test.time_limit = int(request.POST.get('time_limit', 60))
-        test.is_published = request.POST.get('is_published') == 'on'
-        test.show_correct_answers = request.POST.get('show_correct_answers') == 'on'
-        test.shuffle_questions = request.POST.get('shuffle_questions') == 'on'
-        test.groups.set(request.POST.getlist('groups'))
-        test.save()
-        
-        messages.success(request, 'Тест обновлен')
-        return redirect(f"{reverse('teacher_test_edit', args=[test.id])}?next={back_url}")
-    
+        selected_group_ids = request.POST.getlist('groups')
+        allowed_groups = test.subject.groups.filter(id__in=selected_group_ids).order_by('name')
+
+        if allowed_groups.count() != len({str(group_id) for group_id in selected_group_ids}):
+            messages.error(request, 'Можно выбрать только те группы, которые прикреплены к дисциплине этого теста.')
+        else:
+            test.title = request.POST.get('title')
+            test.description = request.POST.get('description')
+            test.time_limit = int(request.POST.get('time_limit', 60))
+            test.is_published = request.POST.get('is_published') == 'on'
+            test.show_correct_answers = request.POST.get('show_correct_answers') == 'on'
+            test.shuffle_questions = request.POST.get('shuffle_questions') == 'on'
+            test.save()
+            test.groups.set(allowed_groups)
+
+            messages.success(request, 'Тест обновлён')
+            return redirect(f"{reverse('teacher_test_edit', args=[test.id])}?next={back_url}")
+
+    allowed_groups = list(test.subject.groups.all().order_by('name'))
     context = {
         'test': test,
         'back_url': back_url,
+        'available_groups': allowed_groups,
     }
     return render(request, 'tests/teacher/test_edit.html', context)
 
