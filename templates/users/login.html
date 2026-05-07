@@ -1,66 +1,124 @@
 {% extends 'auth_base.html' %}
+{% load static %}
 
 {% block title %}Вход в систему{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo"><img src="../static/images/logo.png" width="140rem" alt="Логотип"></div>
-            <h1 class="auth-title">Платформа тестирования</h1>
-            <p class="auth-subtitle">Войдите в свой аккаунт</p>
+<div class="auth-shell">
+    <section class="auth-panel auth-panel-info">
+        <div class="auth-info-copy">
+            <span class="auth-eyebrow">Образовательная среда</span>
+            <h1 class="auth-info-title">Платформа для тестирования студентов</h1>
+            <p class="auth-info-text">
+                Управляйте тестами, отслеживайте результаты и общайтесь внутри одного приложения с понятным интерфейсом и общей системой доступа.
+            </p>
         </div>
 
-        <form method="post" class="auth-form">
-            {% csrf_token %}
+        <div class="auth-feature-grid">
+            <article class="auth-feature-item">
+                <div class="auth-feature-icon">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div>
+                    <h2>Единое пространство</h2>
+                    <p>Предметы, тесты, результаты и профили собраны в одном рабочем контуре.</p>
+                </div>
+            </article>
 
-            <div class="form-group">
-                <label class="form-label" for="username">Имя пользователя</label>
-                <input
-                    type="text"
-                    class="form-input"
-                    id="username"
-                    name="username"
-                    required
-                    autofocus
-                    placeholder="Введите имя пользователя"
-                >
+            <article class="auth-feature-item">
+                <div class="auth-feature-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <h2>Контроль прогресса</h2>
+                    <p>Преподаватели быстро видят успеваемость, а студенты отслеживают свои попытки и оценки.</p>
+                </div>
+            </article>
+
+            <article class="auth-feature-item">
+                <div class="auth-feature-icon">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div>
+                    <h2>Быстрая коммуникация</h2>
+                    <p>Встроенный чат помогает держать связь по вопросам обучения и прохождения тестов.</p>
+                </div>
+            </article>
+        </div>
+
+        <div class="auth-info-highlights">
+            <div class="auth-highlight-pill">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>Роли администратора, преподавателя и студента</span>
+            </div>
+            <div class="auth-highlight-pill">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Удобный доступ к истории результатов</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="auth-panel auth-panel-form">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <img src="{% static 'images/logo.png' %}" width="140" alt="Логотип">
+                </div>
+                <h2 class="auth-title">Платформа тестирования</h2>
+                <p class="auth-subtitle">Войдите в свой аккаунт</p>
             </div>
 
-            <div class="form-group">
-                <label class="form-label" for="password">Пароль</label>
-                <input
-                    type="password"
-                    class="form-input"
-                    id="password"
-                    name="password"
-                    required
-                    placeholder="Введите пароль"
-                >
-            </div>
+            <form method="post" class="auth-form">
+                {% csrf_token %}
 
-            <button type="submit" class="btn btn-primary btn-lg auth-submit">
-                Войти
-            </button>
-        </form>
-    </div>
+                <div class="form-group">
+                    <label class="form-label" for="username">Имя пользователя</label>
+                    <input
+                        type="text"
+                        class="form-input"
+                        id="username"
+                        name="username"
+                        required
+                        autofocus
+                        placeholder="Введите имя пользователя"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Пароль</label>
+                    <input
+                        type="password"
+                        class="form-input"
+                        id="password"
+                        name="password"
+                        required
+                        placeholder="Введите пароль"
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg auth-submit">
+                    Войти
+                </button>
+            </form>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
     .auth-page {
-        background-color: var(--bg-body);
+        background: var(--bg-body);
     }
-    
+
     .auth-wrapper {
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
+        padding: 24px;
     }
-    
+
     .theme-toggle-floating {
         position: fixed;
         top: 20px;
@@ -77,40 +135,160 @@
         transition: all 0.2s ease;
         z-index: 1000;
         color: var(--text-primary);
+        box-shadow: var(--shadow-md);
     }
-    
+
     .theme-toggle-floating:hover {
         background-color: var(--bg-surface-secondary);
         border-color: var(--color-primary);
         color: var(--color-primary);
     }
-    
+
     .theme-toggle-floating .sun-icon {
         display: block;
     }
-    
+
     .theme-toggle-floating .moon-icon {
         display: none;
     }
-    
+
     [data-theme="dark"] .theme-toggle-floating .sun-icon {
         display: none;
     }
-    
+
     [data-theme="dark"] .theme-toggle-floating .moon-icon {
         display: block;
     }
-    
-    .auth-container {
+
+    .auth-shell {
         width: 100%;
-        max-width: 400px;
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(360px, 420px);
+        gap: 0;
+        align-items: stretch;
+        background-color: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+        border: 1px solid var(--border-color);
+        border-radius: 28px;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(12px);
     }
 
-    .auth-card {
-        background-color: var(--bg-surface);
-        border-radius: var(--border-radius-lg);
-        border: 1px solid var(--border-color);
+    .auth-panel {
+        min-width: 0;
+    }
+
+    .auth-panel-info {
         padding: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 32px;
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .auth-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background-color: var(--color-primary-light);
+        color: var(--color-primary);
+        font-size: 0.8125rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 18px;
+    }
+
+    .auth-info-title {
+        font-size: clamp(2rem, 4vw, 3.25rem);
+        line-height: 1.08;
+        color: var(--text-primary);
+        margin-bottom: 18px;
+    }
+
+    .auth-info-text {
+        max-width: 56ch;
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+
+    .auth-feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .auth-feature-item {
+        display: flex;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 20px;
+        background-color: var(--bg-surface-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .auth-feature-item h2 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+    }
+
+    .auth-feature-item p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .auth-feature-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background-color: var(--color-primary-light);
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.125rem;
+    }
+
+    .auth-info-highlights {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .auth-highlight-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .auth-highlight-pill i {
+        color: var(--color-primary);
+    }
+
+    .auth-panel-form {
+        padding: 40px;
+        border-left: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .auth-container {
+        width: 100%;
+        max-width: 360px;
     }
 
     .auth-header {
@@ -119,16 +297,11 @@
     }
 
     .auth-logo {
-        font-size: 3rem;
         margin-bottom: 16px;
         color: var(--color-primary);
         display: flex;
         align-items: center;
         justify-content: center;
-    }
-
-    .auth-logo i {
-        font-size: inherit;
     }
 
     .auth-title {
@@ -150,7 +323,53 @@
     }
 
     .auth-submit {
+        width: 100%;
         margin-top: 8px;
+    }
+
+    @media (max-width: 960px) {
+        .auth-shell {
+            grid-template-columns: 1fr;
+            max-width: 620px;
+        }
+
+        .auth-panel-form {
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .auth-info-title {
+            max-width: none;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .auth-wrapper {
+            padding: 16px;
+        }
+
+        .auth-shell {
+            border-radius: 22px;
+        }
+
+        .auth-panel-info,
+        .auth-panel-form {
+            padding: 24px;
+        }
+
+        .auth-feature-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .auth-info-highlights {
+            flex-direction: column;
+        }
+
+        .auth-highlight-pill {
+            width: 100%;
+            justify-content: flex-start;
+            border-radius: 16px;
+        }
     }
 </style>
 {% endblock %}
