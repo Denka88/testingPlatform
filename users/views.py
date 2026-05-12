@@ -1,3 +1,6 @@
+import re
+from datetime import date, datetime
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
@@ -11,6 +14,15 @@ from .models import Profile, UserRole
 from .mixins import TeacherRequiredMixin, StudentRequiredMixin
 
 User = get_user_model()
+PHONE_MASK_RE = re.compile(r'^\+7\(\d{3}\) \d{3} \d{2}-\d{2}$')
+
+
+def get_latest_allowed_birth_date():
+    today = date.today()
+    try:
+        return today.replace(year=today.year - 14)
+    except ValueError:
+        return today.replace(month=2, day=28, year=today.year - 14)
 
 
 def get_student_dashboard_tests_payload(user):
@@ -737,11 +749,34 @@ def profile_view(request):
     
     if request.method == 'POST':
         # ФИО меняет только администратор через Django admin
-        request.user.email = request.POST.get('email', '')
-        request.user.phone = request.POST.get('phone', '')
+        phone = request.POST.get('phone', '').strip()
+        birth_date_value = request.POST.get('birth_date', '').strip()
 
-        if request.POST.get('birth_date'):
-            request.user.birth_date = request.POST.get('birth_date')
+        if phone and not PHONE_MASK_RE.fullmatch(phone):
+            messages.error(request, 'Укажите телефон в формате +7(XXX) XXX XX-XX')
+            return redirect('profile')
+
+        parsed_birth_date = None
+        if birth_date_value:
+            try:
+                parsed_birth_date = datetime.strptime(birth_date_value, '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, 'Укажите корректную дату рождения')
+                return redirect('profile')
+
+            latest_birth_date = get_latest_allowed_birth_date()
+
+            if parsed_birth_date > latest_birth_date:
+                messages.error(request, 'Пользователь должен быть не младше 14 лет')
+                return redirect('profile')
+
+            if parsed_birth_date < date(1900, 1, 1):
+                messages.error(request, 'Укажите корректную дату рождения')
+                return redirect('profile')
+
+        request.user.email = request.POST.get('email', '').strip()
+        request.user.phone = phone
+        request.user.birth_date = parsed_birth_date
 
         request.user.save()
         
@@ -759,7 +794,10 @@ def profile_view(request):
         messages.success(request, 'Профиль обновлен')
         return redirect('profile')
     
-    context = {'profile': profile}
+    context = {
+        'profile': profile,
+        'latest_birth_date': get_latest_allowed_birth_date(),
+    }
     return render(request, 'users/profile.html', context)
 
 

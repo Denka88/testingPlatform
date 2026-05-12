@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from datetime import datetime, timezone
 from .models import Message
 from .presence import get_last_seen_at, is_user_online
+from .rate_limit import get_chat_mute_remaining_seconds
 
 User = get_user_model()
 
@@ -81,6 +82,7 @@ def contacts_view(request):
         'chat_messages': chat_messages,
         'active_chat_is_online': is_user_online(active_chat.id) if active_chat else False,
         'active_chat_last_seen_at': get_last_seen_at(active_chat) if active_chat else None,
+        'chat_mute_remaining_seconds': get_chat_mute_remaining_seconds(request.user.id),
     }
     return render(request, 'chat/contacts.html', context)
 

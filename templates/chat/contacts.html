@@ -610,6 +610,10 @@
     flex-shrink: 0;
 }
 
+.chat-input-area.is-muted .message-input {
+    opacity: 0.7;
+}
+
 .message-form {
     display: flex;
     gap: 12px;
@@ -666,6 +670,16 @@
 .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.chat-mute-notice {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.chat-mute-notice.is-active {
+    color: var(--color-warning, #f59e0b);
 }
 
 /* Скроллбар */
@@ -966,6 +980,7 @@
                         </button>
                     </div>
                 </form>
+                <div class="chat-mute-notice" id="chatMuteNotice" hidden></div>
             </div>
 
             <div class="chat-confirm-overlay" id="deleteConfirmOverlay" hidden>
@@ -975,6 +990,15 @@
                     <div class="chat-confirm-actions">
                         <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Отмена</button>
                         <button type="button" class="btn btn-primary" id="confirmDeleteBtn">Удалить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-confirm-overlay" id="spamWarningOverlay" hidden>
+                <div class="chat-confirm-modal">
+                    <h3 class="chat-confirm-title">Не стоит так часто писать</h3>
+                    <p class="chat-confirm-text">Вы отправляете сообщения слишком часто. Пожалуйста, не спамьте, иначе чат будет временно ограничен.</p>
+                    <div class="chat-confirm-actions">
+                        <button type="button" class="btn btn-primary" id="closeSpamWarningBtn">Понятно</button>
                     </div>
                 </div>
             </div>
@@ -1007,6 +1031,7 @@ const activeChatDisplayName = '{{ active_chat.get_full_name|default:active_chat.
 const activeChatRole = '{{ active_chat.get_role_display|escapejs }}';
 const activeChatInitialPresenceLastSeen = '{% if active_chat_last_seen_at %}{{ active_chat_last_seen_at|date:"c" }}{% endif %}';
 const activeChatInitialIsOnline = {% if active_chat_is_online %}true{% else %}false{% endif %};
+const initialChatMuteRemaining = {{ chat_mute_remaining_seconds|default:"0" }};
 {% else %}
 const otherUserAvatarUrl = '';
 const userAvatarUrl = '';
@@ -1016,10 +1041,14 @@ const activeChatDisplayName = '';
 const activeChatRole = '';
 const activeChatInitialPresenceLastSeen = '';
 const activeChatInitialIsOnline = false;
+const initialChatMuteRemaining = 0;
 {% endif %}
 
 let chatSocket = null;
 const selectedMessageIds = new Set();
+let chatMuteTimer = null;
+let chatMuteRemaining = 0;
+let lastSubmittedMessage = '';
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -1134,6 +1163,66 @@ function scrollToBottom() {
     }
 }
 
+function formatMuteDuration(seconds) {
+    const totalSeconds = Math.max(0, Number.parseInt(seconds, 10) || 0);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const secs = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${secs}`;
+}
+
+function updateChatMuteState() {
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const muteNotice = document.getElementById('chatMuteNotice');
+    const inputArea = document.querySelector('.chat-input-area');
+
+    if (!messageInput || !sendBtn || !muteNotice || !inputArea) {
+        return;
+    }
+
+    const isMuted = chatMuteRemaining > 0;
+    messageInput.disabled = isMuted;
+    sendBtn.disabled = isMuted;
+    inputArea.classList.toggle('is-muted', isMuted);
+    muteNotice.hidden = !isMuted;
+    muteNotice.classList.toggle('is-active', isMuted);
+
+    if (isMuted) {
+        const timerLabel = formatMuteDuration(chatMuteRemaining);
+        messageInput.placeholder = `Чат временно ограничен: ${timerLabel}`;
+        muteNotice.textContent = `Отправка сообщений будет доступна через ${timerLabel}`;
+    } else {
+        messageInput.placeholder = 'Введите сообщение...';
+        muteNotice.textContent = '';
+    }
+}
+
+function clearChatMuteTimer() {
+    if (chatMuteTimer) {
+        clearInterval(chatMuteTimer);
+        chatMuteTimer = null;
+    }
+}
+
+function startChatMute(seconds) {
+    chatMuteRemaining = Math.max(0, Number.parseInt(seconds, 10) || 0);
+    clearChatMuteTimer();
+    updateChatMuteState();
+
+    if (chatMuteRemaining <= 0) {
+        return;
+    }
+
+    chatMuteTimer = setInterval(() => {
+        chatMuteRemaining = Math.max(0, chatMuteRemaining - 1);
+        updateChatMuteState();
+
+        if (chatMuteRemaining <= 0) {
+            clearChatMuteTimer();
+        }
+    }, 1000);
+}
+
 function getSelectionElements() {
     return {
         actions: document.getElementById('chatSelectionActions'),
@@ -1208,6 +1297,51 @@ function showDeleteConfirm() {
         overlay.addEventListener('click', onOverlayClick);
         confirmButton.addEventListener('click', onConfirm);
         cancelButton.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKeyDown);
+    });
+}
+
+function showSpamWarningModal() {
+    const overlay = document.getElementById('spamWarningOverlay');
+    const closeButton = document.getElementById('closeSpamWarningBtn');
+
+    if (!overlay || !closeButton) {
+        return Promise.resolve();
+    }
+
+    overlay.hidden = false;
+
+    return new Promise((resolve) => {
+        let settled = false;
+
+        function cleanup() {
+            if (settled) return;
+            settled = true;
+            overlay.hidden = true;
+            overlay.removeEventListener('click', onOverlayClick);
+            closeButton.removeEventListener('click', onClose);
+            document.removeEventListener('keydown', onKeyDown);
+            resolve();
+        }
+
+        function onClose() {
+            cleanup();
+        }
+
+        function onOverlayClick(event) {
+            if (event.target === overlay) {
+                cleanup();
+            }
+        }
+
+        function onKeyDown(event) {
+            if (event.key === 'Escape' || event.key === 'Enter') {
+                cleanup();
+            }
+        }
+
+        overlay.addEventListener('click', onOverlayClick);
+        closeButton.addEventListener('click', onClose);
         document.addEventListener('keydown', onKeyDown);
     });
 }
@@ -1562,8 +1696,19 @@ function connectChat() {
             syncActiveConversationPreview();
         } else if (data.type === 'message') {
             appendMessage(data);
+            lastSubmittedMessage = '';
         } else if (data.type === 'messages_deleted') {
             removeMessagesByIds(data.message_ids || []);
+        } else if (data.type === 'spam_warning') {
+            showSpamWarningModal();
+        } else if (data.type === 'chat_muted') {
+            if (lastSubmittedMessage && !document.getElementById('messageInput')?.value) {
+                document.getElementById('messageInput').value = lastSubmittedMessage;
+            }
+            startChatMute(data.remaining_seconds || 60);
+            if (typeof showNotification === 'function') {
+                showNotification('Чат временно ограничен на 1 минуту из-за спама.', 'warning');
+            }
         }
     };
 
@@ -1579,8 +1724,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const messagesContainer = document.getElementById('chatMessages');
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
     const deleteMessagesBtn = document.getElementById('deleteMessagesBtn');
     const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+
+    if (initialChatMuteRemaining > 0) {
+        startChatMute(initialChatMuteRemaining);
+    } else {
+        updateChatMuteState();
+    }
 
     if (mobileBackBtn && chatPanel) {
         mobileBackBtn.addEventListener('click', function() {
@@ -1630,10 +1782,16 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
 
             const message = messageInput.value.trim();
-            if (!message || !chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+            if (chatMuteRemaining > 0) {
+                updateChatMuteState();
                 return;
             }
 
+            if (!message || !chatSocket || chatSocket.readyState !== WebSocket.OPEN || (sendBtn && sendBtn.disabled)) {
+                return;
+            }
+
+            lastSubmittedMessage = message;
             chatSocket.send(JSON.stringify({ message }));
             messageInput.value = '';
         });

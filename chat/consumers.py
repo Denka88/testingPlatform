@@ -4,6 +4,8 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.contrib.auth import get_user_model
 
+from .rate_limit import register_message_attempt
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """
@@ -86,6 +88,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not message_text:
             return
 
+        rate_limit_result = await self.check_rate_limit()
+        if rate_limit_result['status'] == 'muted':
+            await self.send(text_data=json.dumps({
+                'type': 'chat_muted',
+                'remaining_seconds': rate_limit_result['remaining_seconds'],
+            }))
+            return
+
+        if rate_limit_result['status'] == 'warning':
+            await self.send(text_data=json.dumps({
+                'type': 'spam_warning',
+                'message': 'Вы отправляете сообщения слишком часто. Пожалуйста, не спамьте.',
+            }))
+
         message = await self.save_message(message_text)
 
         await self.channel_layer.group_send(
@@ -142,6 +158,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'type': 'messages_deleted',
             'message_ids': event['message_ids'],
         }))
+
+    @database_sync_to_async
+    def check_rate_limit(self):
+        return register_message_attempt(self.user.id)
 
     @database_sync_to_async
     def get_user(self, user_id, user_model):
