@@ -99,7 +99,6 @@ class Message(models.Model):
         for message in messages:
             msg_date = message.created_at.date()
             
-            # Если дата изменилась, добавляем разделитель
             if msg_date != last_date:
                 result.append({'type': 'date', 'date': msg_date})
                 last_date = msg_date

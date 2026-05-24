@@ -8,11 +8,6 @@ from .rate_limit import register_message_attempt
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    """
-    WebSocket consumer for one-to-one chat.
-
-    URL: ws://server/ws/chat/<other_user_id>/
-    """
 
     async def connect(self):
         self.user = self.scope['user']

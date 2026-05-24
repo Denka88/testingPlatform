@@ -55,14 +55,11 @@
 
     // Открытие меню
     function openSidebar() {
-        // На десктопе просто убираем класс closed
         if (isDesktop()) {
             sidebar.classList.remove('closed');
             mainContent.classList.remove('expanded');
-            // Сохраняем состояние после открытия
             saveSidebarState();
         } else {
-            // На мобильных добавляем класс open
             sidebar.classList.add('open');
             sidebarOverlay.classList.add('active');
         }
@@ -71,15 +68,12 @@
     // Закрытие меню
     function closeSidebar() {
         if (isDesktop()) {
-            // На десктопе добавляем класс closed
             sidebar.classList.add('closed');
             mainContent.classList.add('expanded');
         } else {
-            // На мобильных убираем класс open
             sidebar.classList.remove('open');
         }
         sidebarOverlay.classList.remove('active');
-        // Сохраняем состояние после закрытия
         if (isDesktop()) {
             saveSidebarState();
         }
@@ -88,14 +82,12 @@
     // Переключение меню
     function toggleSidebar() {
         if (isDesktop()) {
-            // На десктопе: если меню закрыто (closed) - открываем, иначе закрываем
             if (sidebar.classList.contains('closed')) {
                 openSidebar();
             } else {
                 closeSidebar();
             }
         } else {
-            // На мобильных: если меню открыто (open) - закрываем, иначе открываем
             if (sidebar.classList.contains('open')) {
                 closeSidebar();
             } else {
@@ -115,15 +107,12 @@
                 sidebar.classList.remove('closed');
                 mainContent.classList.remove('expanded');
             }
-            // На десктопе overlay всегда скрыт
             sidebarOverlay.classList.remove('active');
         } else {
-            // На мобильных всегда начинаем с закрытым меню
             sidebar.classList.remove('open');
             mainContent.classList.remove('expanded');
             sidebarOverlay.classList.remove('active');
         }
-        // Убираем inline-стиль после применения состояния
         document.documentElement.style.removeProperty('--sidebar-initial-state');
     }
 
@@ -178,11 +167,9 @@
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(function(item) {
         item.addEventListener('click', function() {
-            // Удаляем active у всех пунктов
             navItems.forEach(function(nav) {
                 nav.classList.remove('active');
             });
-            // Добавляем active текущему
             item.classList.add('active');
         });
     });
@@ -400,7 +387,6 @@ function formatTime(seconds) {
 // Копирование в буфер обмена
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function() {
-        // Можно добавить уведомление об успешном копировании
     }).catch(function(err) {
         console.error('Ошибка копирования:', err);
     });

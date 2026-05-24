@@ -11,6 +11,27 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     """Расширенная модель пользователя с ролями."""
 
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return f"{self.last_name} {self.first_name} ({self.get_role_display()})"
+
+    # Переопределяем поля first_name и last_name как обязательные
+    first_name = models.CharField(
+        'Имя',
+        max_length=150,
+        blank=False,
+        help_text='Обязательное поле',
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=150,
+        blank=False,
+        help_text='Обязательное поле',
+    )
+
     role = models.CharField(
         max_length=10,
         choices=UserRole.choices,

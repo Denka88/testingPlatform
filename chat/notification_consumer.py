@@ -15,9 +15,6 @@ from .presence import (
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
-    """
-    WebSocket consumer for per-user notifications.
-    """
 
     async def connect(self):
         self.user = self.scope['user']
