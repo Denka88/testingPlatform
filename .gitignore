@@ -3,3 +3,4 @@ media/
 staticfiles/
 venv/
 .venv/
+.idea
